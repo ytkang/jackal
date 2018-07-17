@@ -12,7 +12,7 @@ import (
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 const privateNamespace = "jabber:iq:private"
@@ -40,13 +40,13 @@ func (x *Private) RegisterDisco(_ *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the private storage module.
-func (x *Private) MatchesIQ(iq *xml.IQ) bool {
+func (x *Private) MatchesIQ(iq *xmpp.IQ) bool {
 	return iq.Elements().ChildNamespace("query", privateNamespace) != nil
 }
 
 // ProcessIQ processes a private storage IQ taking according actions
 // over the associated stream.
-func (x *Private) ProcessIQ(iq *xml.IQ) {
+func (x *Private) ProcessIQ(iq *xmpp.IQ) {
 	x.actorCh <- func() {
 		q := iq.Elements().ChildNamespace("query", privateNamespace)
 		toJid := iq.ToJID()
@@ -77,7 +77,7 @@ func (x *Private) actorLoop(doneCh <-chan struct{}) {
 	}
 }
 
-func (x *Private) getPrivate(iq *xml.IQ, q xml.XElement) {
+func (x *Private) getPrivate(iq *xmpp.IQ, q xmpp.XElement) {
 	if q.Elements().Count() != 1 {
 		x.stm.SendElement(iq.NotAcceptableError())
 		return
@@ -99,19 +99,19 @@ func (x *Private) getPrivate(iq *xml.IQ, q xml.XElement) {
 		return
 	}
 	res := iq.ResultIQ()
-	query := xml.NewElementNamespace("query", privateNamespace)
+	query := xmpp.NewElementNamespace("query", privateNamespace)
 	if privElements != nil {
 		query.AppendElements(privElements)
 	} else {
-		query.AppendElement(xml.NewElementNamespace(privElem.Name(), privElem.Namespace()))
+		query.AppendElement(xmpp.NewElementNamespace(privElem.Name(), privElem.Namespace()))
 	}
 	res.AppendElement(query)
 
 	x.stm.SendElement(res)
 }
 
-func (x *Private) setPrivate(iq *xml.IQ, q xml.XElement) {
-	nsElements := map[string][]xml.XElement{}
+func (x *Private) setPrivate(iq *xmpp.IQ, q xmpp.XElement) {
+	nsElements := map[string][]xmpp.XElement{}
 
 	for _, privElement := range q.Elements().All() {
 		ns := privElement.Namespace()
@@ -125,7 +125,7 @@ func (x *Private) setPrivate(iq *xml.IQ, q xml.XElement) {
 		}
 		elems := nsElements[ns]
 		if elems == nil {
-			elems = []xml.XElement{privElement}
+			elems = []xmpp.XElement{privElement}
 		} else {
 			elems = append(elems, privElement)
 		}

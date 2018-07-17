@@ -30,8 +30,8 @@ import (
 	"github.com/ortuman/jackal/stream"
 	"github.com/ortuman/jackal/transport"
 	"github.com/ortuman/jackal/transport/compress"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 )
 
@@ -171,16 +171,16 @@ func (s *inStream) IsCompressed() bool {
 }
 
 // Presence returns last sent presence element.
-func (s *inStream) Presence() *xml.Presence {
+func (s *inStream) Presence() *xmpp.Presence {
 	switch v := s.ctx.Object(presenceCtxKey).(type) {
-	case *xml.Presence:
+	case *xmpp.Presence:
 		return v
 	}
 	return nil
 }
 
 // SendElement sends the given XML element.
-func (s *inStream) SendElement(elem xml.XElement) {
+func (s *inStream) SendElement(elem xmpp.XElement) {
 	if s.getState() == disconnected {
 		return
 	}
@@ -298,7 +298,7 @@ func (s *inStream) connectTimeout() {
 	s.actorCh <- func() { s.disconnect(streamerror.ErrConnectionTimeout) }
 }
 
-func (s *inStream) handleElement(elem xml.XElement) {
+func (s *inStream) handleElement(elem xmpp.XElement) {
 	switch s.getState() {
 	case connecting:
 		s.handleConnecting(elem)
@@ -313,7 +313,7 @@ func (s *inStream) handleElement(elem xml.XElement) {
 	}
 }
 
-func (s *inStream) handleConnecting(elem xml.XElement) {
+func (s *inStream) handleConnecting(elem xmpp.XElement) {
 	// cancel connection timeout timer
 	if s.connectTm != nil {
 		s.connectTm.Stop()
@@ -330,7 +330,7 @@ func (s *inStream) handleConnecting(elem xml.XElement) {
 	s.sess.SetJID(j)
 	s.sess.Open()
 
-	features := xml.NewElementName("stream:features")
+	features := xmpp.NewElementName("stream:features")
 	features.SetAttribute("xmlns:stream", streamNamespace)
 	features.SetAttribute("version", "1.0")
 
@@ -344,15 +344,15 @@ func (s *inStream) handleConnecting(elem xml.XElement) {
 	s.writeElement(features)
 }
 
-func (s *inStream) unauthenticatedFeatures() []xml.XElement {
-	var features []xml.XElement
+func (s *inStream) unauthenticatedFeatures() []xmpp.XElement {
+	var features []xmpp.XElement
 
 	isSocketTr := s.cfg.transport.Type() == transport.Socket
 
 	if isSocketTr && !s.IsSecured() {
-		startTLS := xml.NewElementName("starttls")
+		startTLS := xmpp.NewElementName("starttls")
 		startTLS.SetNamespace("urn:ietf:params:xml:ns:xmpp-tls")
-		startTLS.AppendElement(xml.NewElementName("required"))
+		startTLS.AppendElement(xmpp.NewElementName("required"))
 		features = append(features, startTLS)
 	}
 
@@ -360,10 +360,10 @@ func (s *inStream) unauthenticatedFeatures() []xml.XElement {
 	shouldOfferSASL := (!isSocketTr || (isSocketTr && s.IsSecured()))
 
 	if shouldOfferSASL && len(s.authenticators) > 0 {
-		mechanisms := xml.NewElementName("mechanisms")
+		mechanisms := xmpp.NewElementName("mechanisms")
 		mechanisms.SetNamespace(saslNamespace)
 		for _, athr := range s.authenticators {
-			mechanism := xml.NewElementName("mechanism")
+			mechanism := xmpp.NewElementName("mechanism")
 			mechanism.SetText(athr.Mechanism())
 			mechanisms.AppendElement(mechanism)
 		}
@@ -374,14 +374,14 @@ func (s *inStream) unauthenticatedFeatures() []xml.XElement {
 	allowRegistration := s.IsSecured()
 
 	if reg := s.mods.register; reg != nil && allowRegistration {
-		registerFeature := xml.NewElementNamespace("register", "http://jabber.org/features/iq-register")
+		registerFeature := xmpp.NewElementNamespace("register", "http://jabber.org/features/iq-register")
 		features = append(features, registerFeature)
 	}
 	return features
 }
 
-func (s *inStream) authenticatedFeatures() []xml.XElement {
-	var features []xml.XElement
+func (s *inStream) authenticatedFeatures() []xmpp.XElement {
+	var features []xmpp.XElement
 
 	isSocketTr := s.cfg.transport.Type() == transport.Socket
 
@@ -389,27 +389,27 @@ func (s *inStream) authenticatedFeatures() []xml.XElement {
 	compressionAvailable := isSocketTr && s.cfg.compression.Level != compress.NoCompression
 
 	if !s.IsCompressed() && compressionAvailable {
-		compression := xml.NewElementNamespace("compression", "http://jabber.org/features/compress")
-		method := xml.NewElementName("method")
+		compression := xmpp.NewElementNamespace("compression", "http://jabber.org/features/compress")
+		method := xmpp.NewElementName("method")
 		method.SetText("zlib")
 		compression.AppendElement(method)
 		features = append(features, compression)
 	}
-	bind := xml.NewElementNamespace("bind", "urn:ietf:params:xml:ns:xmpp-bind")
-	bind.AppendElement(xml.NewElementName("required"))
+	bind := xmpp.NewElementNamespace("bind", "urn:ietf:params:xml:ns:xmpp-bind")
+	bind.AppendElement(xmpp.NewElementName("required"))
 	features = append(features, bind)
 
-	sessElem := xml.NewElementNamespace("session", "urn:ietf:params:xml:ns:xmpp-session")
+	sessElem := xmpp.NewElementNamespace("session", "urn:ietf:params:xml:ns:xmpp-session")
 	features = append(features, sessElem)
 
 	if s.mods.roster != nil {
-		ver := xml.NewElementNamespace("ver", "urn:xmpp:features:rosterver")
+		ver := xmpp.NewElementNamespace("ver", "urn:xmpp:features:rosterver")
 		features = append(features, ver)
 	}
 	return features
 }
 
-func (s *inStream) handleConnected(elem xml.XElement) {
+func (s *inStream) handleConnected(elem xmpp.XElement) {
 	switch elem.Name() {
 	case "starttls":
 		s.proceedStartTLS(elem)
@@ -418,7 +418,7 @@ func (s *inStream) handleConnected(elem xml.XElement) {
 		s.startAuthentication(elem)
 
 	case "iq":
-		iq := elem.(*xml.IQ)
+		iq := elem.(*xmpp.IQ)
 		if reg := s.mods.register; reg.MatchesIQ(iq) {
 			reg.ProcessIQ(iq)
 			return
@@ -437,7 +437,7 @@ func (s *inStream) handleConnected(elem xml.XElement) {
 	}
 }
 
-func (s *inStream) handleAuthenticating(elem xml.XElement) {
+func (s *inStream) handleAuthenticating(elem xmpp.XElement) {
 	if elem.Namespace() != saslNamespace {
 		s.disconnectWithStreamError(streamerror.ErrInvalidNamespace)
 		return
@@ -449,7 +449,7 @@ func (s *inStream) handleAuthenticating(elem xml.XElement) {
 	}
 }
 
-func (s *inStream) handleAuthenticated(elem xml.XElement) {
+func (s *inStream) handleAuthenticated(elem xmpp.XElement) {
 	switch elem.Name() {
 	case "compress":
 		if elem.Namespace() != compressProtocolNamespace {
@@ -459,7 +459,7 @@ func (s *inStream) handleAuthenticated(elem xml.XElement) {
 		s.compress(elem)
 
 	case "iq":
-		iq := elem.(*xml.IQ)
+		iq := elem.(*xmpp.IQ)
 		if len(s.Resource()) == 0 { // expecting bind
 			s.bindResource(iq)
 		} else { // expecting session
@@ -471,12 +471,12 @@ func (s *inStream) handleAuthenticated(elem xml.XElement) {
 	}
 }
 
-func (s *inStream) handleSessionStarted(elem xml.XElement) {
+func (s *inStream) handleSessionStarted(elem xmpp.XElement) {
 	// reset ping timer deadline
 	if p := s.mods.ping; p != nil {
 		p.ResetDeadline()
 	}
-	stanza, ok := elem.(xml.Stanza)
+	stanza, ok := elem.(xmpp.Stanza)
 	if !ok {
 		s.disconnectWithStreamError(streamerror.ErrUnsupportedStanzaType)
 		return
@@ -488,7 +488,7 @@ func (s *inStream) handleSessionStarted(elem xml.XElement) {
 	}
 }
 
-func (s *inStream) proceedStartTLS(elem xml.XElement) {
+func (s *inStream) proceedStartTLS(elem xmpp.XElement) {
 	if s.IsSecured() {
 		s.disconnectWithStreamError(streamerror.ErrNotAuthorized)
 		return
@@ -499,7 +499,7 @@ func (s *inStream) proceedStartTLS(elem xml.XElement) {
 	}
 	s.ctx.SetBool(true, securedCtxKey)
 
-	s.writeElement(xml.NewElementNamespace("proceed", tlsNamespace))
+	s.writeElement(xmpp.NewElementNamespace("proceed", tlsNamespace))
 
 	s.cfg.transport.StartTLS(&tls.Config{Certificates: host.Certificates()}, false)
 
@@ -507,27 +507,27 @@ func (s *inStream) proceedStartTLS(elem xml.XElement) {
 	s.restartSession()
 }
 
-func (s *inStream) compress(elem xml.XElement) {
+func (s *inStream) compress(elem xmpp.XElement) {
 	if s.IsCompressed() {
 		s.disconnectWithStreamError(streamerror.ErrUnsupportedStanzaType)
 		return
 	}
 	method := elem.Elements().Child("method")
 	if method == nil || len(method.Text()) == 0 {
-		failure := xml.NewElementNamespace("failure", compressProtocolNamespace)
-		failure.AppendElement(xml.NewElementName("setup-failed"))
+		failure := xmpp.NewElementNamespace("failure", compressProtocolNamespace)
+		failure.AppendElement(xmpp.NewElementName("setup-failed"))
 		s.writeElement(failure)
 		return
 	}
 	if method.Text() != "zlib" {
-		failure := xml.NewElementNamespace("failure", compressProtocolNamespace)
-		failure.AppendElement(xml.NewElementName("unsupported-method"))
+		failure := xmpp.NewElementNamespace("failure", compressProtocolNamespace)
+		failure.AppendElement(xmpp.NewElementName("unsupported-method"))
 		s.writeElement(failure)
 		return
 	}
 	s.ctx.SetBool(true, compressedCtxKey)
 
-	s.writeElement(xml.NewElementNamespace("compressed", compressProtocolNamespace))
+	s.writeElement(xmpp.NewElementNamespace("compressed", compressProtocolNamespace))
 
 	s.cfg.transport.EnableCompression(s.cfg.compression.Level)
 
@@ -536,7 +536,7 @@ func (s *inStream) compress(elem xml.XElement) {
 	s.restartSession()
 }
 
-func (s *inStream) startAuthentication(elem xml.XElement) {
+func (s *inStream) startAuthentication(elem xmpp.XElement) {
 	if elem.Namespace() != saslNamespace {
 		s.disconnectWithStreamError(streamerror.ErrInvalidNamespace)
 		return
@@ -557,12 +557,12 @@ func (s *inStream) startAuthentication(elem xml.XElement) {
 		}
 	}
 	// ...mechanism not found...
-	failure := xml.NewElementNamespace("failure", saslNamespace)
-	failure.AppendElement(xml.NewElementName("invalid-mechanism"))
+	failure := xmpp.NewElementNamespace("failure", saslNamespace)
+	failure.AppendElement(xmpp.NewElementName("invalid-mechanism"))
 	s.writeElement(failure)
 }
 
-func (s *inStream) continueAuthentication(elem xml.XElement, authr auth.Authenticator) error {
+func (s *inStream) continueAuthentication(elem xmpp.XElement, authr auth.Authenticator) error {
 	err := authr.ProcessElement(elem)
 	if saslErr, ok := err.(*auth.SASLError); ok {
 		s.failAuthentication(saslErr.Element())
@@ -587,8 +587,8 @@ func (s *inStream) finishAuthentication(username string) {
 	s.restartSession()
 }
 
-func (s *inStream) failAuthentication(elem xml.XElement) {
-	failure := xml.NewElementNamespace("failure", saslNamespace)
+func (s *inStream) failAuthentication(elem xmpp.XElement) {
+	failure := xmpp.NewElementNamespace("failure", saslNamespace)
 	failure.AppendElement(elem)
 	s.writeElement(failure)
 
@@ -599,7 +599,7 @@ func (s *inStream) failAuthentication(elem xml.XElement) {
 	s.setState(connected)
 }
 
-func (s *inStream) bindResource(iq *xml.IQ) {
+func (s *inStream) bindResource(iq *xmpp.IQ) {
 	bind := iq.Elements().ChildNamespace("bind", bindNamespace)
 	if bind == nil {
 		s.writeElement(iq.NotAllowedError())
@@ -646,11 +646,11 @@ func (s *inStream) bindResource(iq *xml.IQ) {
 	router.Bind(s)
 
 	//...notify successful binding
-	result := xml.NewIQType(iq.ID(), xml.ResultType)
+	result := xmpp.NewIQType(iq.ID(), xmpp.ResultType)
 	result.SetNamespace(iq.Namespace())
 
-	binded := xml.NewElementNamespace("bind", bindNamespace)
-	j := xml.NewElementName("jid")
+	binded := xmpp.NewElementNamespace("bind", bindNamespace)
+	j := xmpp.NewElementName("jid")
 	j.SetText(s.Username() + "@" + s.Domain() + "/" + s.Resource())
 	binded.AppendElement(j)
 	result.AppendElement(binded)
@@ -658,7 +658,7 @@ func (s *inStream) bindResource(iq *xml.IQ) {
 	s.writeElement(result)
 }
 
-func (s *inStream) startSession(iq *xml.IQ) {
+func (s *inStream) startSession(iq *xmpp.IQ) {
 	if len(s.Resource()) == 0 {
 		// not binded yet...
 		s.Disconnect(streamerror.ErrNotAuthorized)
@@ -682,28 +682,28 @@ func (s *inStream) startSession(iq *xml.IQ) {
 	s.setState(sessionStarted)
 }
 
-func (s *inStream) processStanza(stanza xml.Stanza) {
+func (s *inStream) processStanza(stanza xmpp.Stanza) {
 	toJID := stanza.ToJID()
 	if s.isBlockedJID(toJID) { // blocked JID?
-		blocked := xml.NewElementNamespace("blocked", blockedErrorNamespace)
-		resp := xml.NewErrorElementFromElement(stanza, xml.ErrNotAcceptable, []xml.XElement{blocked})
+		blocked := xmpp.NewElementNamespace("blocked", blockedErrorNamespace)
+		resp := xmpp.NewErrorElementFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
 		s.writeElement(resp)
 		return
 	}
 	switch stanza := stanza.(type) {
-	case *xml.Presence:
+	case *xmpp.Presence:
 		s.processPresence(stanza)
-	case *xml.IQ:
+	case *xmpp.IQ:
 		s.processIQ(stanza)
-	case *xml.Message:
+	case *xmpp.Message:
 		s.processMessage(stanza)
 	}
 }
 
-func (s *inStream) processComponentStanza(stanza xml.Stanza) {
+func (s *inStream) processComponentStanza(stanza xmpp.Stanza) {
 }
 
-func (s *inStream) processIQ(iq *xml.IQ) {
+func (s *inStream) processIQ(iq *xmpp.IQ) {
 	toJID := iq.ToJID()
 
 	replyOnBehalf := toJID.IsBare() && host.IsLocalHost(toJID.Domain())
@@ -735,7 +735,7 @@ func (s *inStream) processIQ(iq *xml.IQ) {
 	}
 }
 
-func (s *inStream) processPresence(presence *xml.Presence) {
+func (s *inStream) processPresence(presence *xmpp.Presence) {
 	if presence.ToJID().IsFullWithUser() {
 		router.Route(presence)
 		return
@@ -760,7 +760,7 @@ func (s *inStream) processPresence(presence *xml.Presence) {
 	}
 }
 
-func (s *inStream) processMessage(message *xml.Message) {
+func (s *inStream) processMessage(message *xmpp.Message) {
 	toJID := message.ToJID()
 
 sendMessage:
@@ -822,19 +822,19 @@ func (s *inStream) handleSessionError(sErr *session.Error) {
 		s.disconnect(nil)
 	case *streamerror.Error:
 		s.disconnectWithStreamError(err)
-	case *xml.StanzaError:
-		s.writeElement(xml.NewErrorElementFromElement(sErr.Element, err, nil))
+	case *xmpp.StanzaError:
+		s.writeElement(xmpp.NewErrorElementFromElement(sErr.Element, err, nil))
 	default:
 		log.Error(err)
 		s.disconnectWithStreamError(streamerror.ErrUndefinedCondition)
 	}
 }
 
-func (s *inStream) writeElement(elem xml.XElement) {
+func (s *inStream) writeElement(elem xmpp.XElement) {
 	s.sess.Send(elem)
 }
 
-func (s *inStream) readElement(elem xml.XElement) {
+func (s *inStream) readElement(elem xmpp.XElement) {
 	if elem != nil {
 		s.handleElement(elem)
 	}
@@ -876,7 +876,7 @@ func (s *inStream) disconnectWithStreamError(err *streamerror.Error) {
 
 func (s *inStream) disconnectClosingSession(closeSession, unbind bool) {
 	if presence := s.Presence(); presence != nil && presence.IsAvailable() && s.mods.roster != nil {
-		s.mods.roster.ProcessPresence(xml.NewPresence(s.JID(), s.JID().ToBareJID(), xml.UnavailableType))
+		s.mods.roster.ProcessPresence(xmpp.NewPresence(s.JID(), s.JID().ToBareJID(), xmpp.UnavailableType))
 	}
 	if closeSession {
 		s.sess.Close()

@@ -14,8 +14,8 @@ import (
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +46,7 @@ func TestPresenceHandler_Available(t *testing.T) {
 	// user entity
 	storage.Instance().InsertOrUpdateUser(&model.User{
 		Username:     "ortuman",
-		LastPresence: xml.NewPresence(j1, j1.ToBareJID(), xml.UnavailableType),
+		LastPresence: xmpp.NewPresence(j1, j1.ToBareJID(), xmpp.UnavailableType),
 	})
 
 	// roster items
@@ -65,38 +65,38 @@ func TestPresenceHandler_Available(t *testing.T) {
 	storage.Instance().InsertOrUpdateRosterNotification(&rostermodel.Notification{
 		Contact:  "ortuman",
 		JID:      j3.ToBareJID().String(),
-		Presence: xml.NewPresence(j3.ToBareJID(), j1.ToBareJID(), xml.SubscribeType),
+		Presence: xmpp.NewPresence(j3.ToBareJID(), j1.ToBareJID(), xmpp.SubscribeType),
 	})
 
 	ph := NewPresenceHandler(&Config{})
 
 	// online presence...
-	ph.ProcessPresence(xml.NewPresence(j1, j1.ToBareJID(), xml.AvailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j1.ToBareJID(), xmpp.AvailableType))
 
 	// receive pending approval notification...
 	elem := stm1.FetchElement()
 	require.Equal(t, "presence", elem.Name())
 	require.Equal(t, j3.ToBareJID().String(), elem.From())
-	require.Equal(t, xml.SubscribeType, elem.Type())
+	require.Equal(t, xmpp.SubscribeType, elem.Type())
 
 	// expect user's available presence
 	elem = stm2.FetchElement()
 	require.Equal(t, "presence", elem.Name())
 	require.Equal(t, j1.String(), elem.From())
-	require.Equal(t, xml.AvailableType, elem.Type())
+	require.Equal(t, xmpp.AvailableType, elem.Type())
 
 	// check if last presence was updated
 	usr, err := storage.Instance().FetchUser("ortuman")
 	require.Nil(t, err)
 	require.NotNil(t, usr)
 	require.NotNil(t, usr.LastPresence)
-	require.Equal(t, xml.AvailableType, usr.LastPresence.Type())
+	require.Equal(t, xmpp.AvailableType, usr.LastPresence.Type())
 
 	// send remaining online presences...
-	ph.ProcessPresence(xml.NewPresence(j2, j2.ToBareJID(), xml.AvailableType))
-	ph.ProcessPresence(xml.NewPresence(j3, j3.ToBareJID(), xml.AvailableType))
-	ph.ProcessPresence(xml.NewPresence(j4, j1.ToBareJID(), xml.AvailableType))
-	ph.ProcessPresence(xml.NewPresence(j5, j1.ToBareJID(), xml.AvailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j2, j2.ToBareJID(), xmpp.AvailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j3, j3.ToBareJID(), xmpp.AvailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j4, j1.ToBareJID(), xmpp.AvailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j5, j1.ToBareJID(), xmpp.AvailableType))
 
 	require.Equal(t, 1, len(OnlinePresencesMatchingJID(j1)))
 
@@ -113,11 +113,11 @@ func TestPresenceHandler_Available(t *testing.T) {
 	require.Equal(t, 2, len(OnlinePresencesMatchingJID(j9)))
 
 	// send unavailable presences...
-	ph.ProcessPresence(xml.NewPresence(j1, j1.ToBareJID(), xml.UnavailableType))
-	ph.ProcessPresence(xml.NewPresence(j2, j2.ToBareJID(), xml.UnavailableType))
-	ph.ProcessPresence(xml.NewPresence(j3, j3.ToBareJID(), xml.UnavailableType))
-	ph.ProcessPresence(xml.NewPresence(j4, j4.ToBareJID(), xml.UnavailableType))
-	ph.ProcessPresence(xml.NewPresence(j5, j1.ToBareJID(), xml.UnavailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j1.ToBareJID(), xmpp.UnavailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j2, j2.ToBareJID(), xmpp.UnavailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j3, j3.ToBareJID(), xmpp.UnavailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j4, j4.ToBareJID(), xmpp.UnavailableType))
+	ph.ProcessPresence(xmpp.NewPresence(j5, j1.ToBareJID(), xmpp.UnavailableType))
 
 	require.Equal(t, 0, len(OnlinePresencesMatchingJID(j1)))
 	require.Equal(t, 0, len(OnlinePresencesMatchingJID(j6)))
@@ -146,40 +146,40 @@ func TestPresenceHandler_Probe(t *testing.T) {
 	ph := NewPresenceHandler(&Config{})
 
 	// user doesn't exist...
-	ph.ProcessPresence(xml.NewPresence(j1, j2, xml.ProbeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j2, xmpp.ProbeType))
 	elem := stm.FetchElement()
 	require.Equal(t, "presence", elem.Name())
 	require.Equal(t, "noelia@jackal.im", elem.From())
-	require.Equal(t, xml.UnsubscribedType, elem.Type())
+	require.Equal(t, xmpp.UnsubscribedType, elem.Type())
 
 	storage.Instance().InsertOrUpdateUser(&model.User{
 		Username:     "noelia",
-		LastPresence: xml.NewPresence(j2.ToBareJID(), j2.ToBareJID(), xml.UnavailableType),
+		LastPresence: xmpp.NewPresence(j2.ToBareJID(), j2.ToBareJID(), xmpp.UnavailableType),
 	})
 
 	// user exists, with no presence subscription...
-	ph.ProcessPresence(xml.NewPresence(j1, j2, xml.ProbeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j2, xmpp.ProbeType))
 	elem = stm.FetchElement()
-	require.Equal(t, xml.UnsubscribedType, elem.Type())
+	require.Equal(t, xmpp.UnsubscribedType, elem.Type())
 
 	storage.Instance().InsertOrUpdateRosterItem(&rostermodel.Item{
 		Username:     "noelia",
 		JID:          "ortuman@jackal.im",
 		Subscription: rostermodel.SubscriptionFrom,
 	})
-	ph.ProcessPresence(xml.NewPresence(j1, j2, xml.ProbeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j2, xmpp.ProbeType))
 	elem = stm.FetchElement()
-	require.Equal(t, xml.UnavailableType, elem.Type())
+	require.Equal(t, xmpp.UnavailableType, elem.Type())
 
 	// test available presence...
-	p2 := xml.NewPresence(j2, j2.ToBareJID(), xml.AvailableType)
+	p2 := xmpp.NewPresence(j2, j2.ToBareJID(), xmpp.AvailableType)
 	storage.Instance().InsertOrUpdateUser(&model.User{
 		Username:     "noelia",
 		LastPresence: p2,
 	})
-	ph.ProcessPresence(xml.NewPresence(j1, j2, xml.ProbeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1, j2, xmpp.ProbeType))
 	elem = stm.FetchElement()
-	require.Equal(t, xml.AvailableType, elem.Type())
+	require.Equal(t, xmpp.AvailableType, elem.Type())
 	require.Equal(t, "noelia@jackal.im/garden", elem.From())
 }
 
@@ -196,17 +196,17 @@ func TestPresenceHandler_Subscription(t *testing.T) {
 	j2, _ := jid.New("noelia", "jackal.im", "garden", true)
 
 	ph := NewPresenceHandler(&Config{})
-	ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.SubscribeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.SubscribeType))
 
 	rns, err := storage.Instance().FetchRosterNotifications("noelia")
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rns))
 
 	// resend request...
-	require.Nil(t, ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.SubscribeType)))
+	require.Nil(t, ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.SubscribeType)))
 
 	// contact request cancellation
-	ph.ProcessPresence(xml.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xml.UnsubscribedType))
+	ph.ProcessPresence(xmpp.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xmpp.UnsubscribedType))
 	rns, err = storage.Instance().FetchRosterNotifications("noelia")
 	require.Nil(t, err)
 	require.Equal(t, 0, len(rns))
@@ -216,30 +216,30 @@ func TestPresenceHandler_Subscription(t *testing.T) {
 	require.Equal(t, rostermodel.SubscriptionNone, ri.Subscription)
 
 	// contact accepts request...
-	ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.SubscribeType))
-	ph.ProcessPresence(xml.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xml.SubscribedType))
+	ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.SubscribeType))
+	ph.ProcessPresence(xmpp.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xmpp.SubscribedType))
 
 	ri, err = storage.Instance().FetchRosterItem("ortuman", "noelia@jackal.im")
 	require.Nil(t, err)
 	require.Equal(t, rostermodel.SubscriptionTo, ri.Subscription)
 
 	// contact subscribes to user's presence...
-	ph.ProcessPresence(xml.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xml.SubscribeType))
-	ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.SubscribedType))
+	ph.ProcessPresence(xmpp.NewPresence(j2.ToBareJID(), j1.ToBareJID(), xmpp.SubscribeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.SubscribedType))
 
 	ri, err = storage.Instance().FetchRosterItem("noelia", "ortuman@jackal.im")
 	require.Nil(t, err)
 	require.Equal(t, rostermodel.SubscriptionBoth, ri.Subscription)
 
 	// user unsubscribes from contact's presence...
-	ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.UnsubscribeType))
+	ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.UnsubscribeType))
 
 	ri, err = storage.Instance().FetchRosterItem("ortuman", "noelia@jackal.im")
 	require.Nil(t, err)
 	require.Equal(t, rostermodel.SubscriptionFrom, ri.Subscription)
 
 	// user cancels contact subscription
-	ph.ProcessPresence(xml.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xml.UnsubscribedType))
+	ph.ProcessPresence(xmpp.NewPresence(j1.ToBareJID(), j2.ToBareJID(), xmpp.UnsubscribedType))
 	ri, err = storage.Instance().FetchRosterItem("ortuman", "noelia@jackal.im")
 	require.Nil(t, err)
 	require.Equal(t, rostermodel.SubscriptionNone, ri.Subscription)

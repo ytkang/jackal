@@ -11,7 +11,7 @@ import (
 
 	"github.com/ortuman/jackal/module"
 	"github.com/ortuman/jackal/transport"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 	"github.com/pkg/errors"
 )
 
@@ -119,6 +119,6 @@ type streamConfig struct {
 	tls            *tls.Config
 	transport      transport.Transport
 	maxStanzaSize  int
-	dbVerify       xml.XElement
+	dbVerify       xmpp.XElement
 	dialer         *dialer
 }

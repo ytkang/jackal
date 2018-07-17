@@ -9,15 +9,15 @@ import (
 	"encoding/gob"
 	"time"
 
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 // User represents a user storage entity.
 type User struct {
 	Username       string
 	Password       string
-	LastPresence   *xml.Presence
+	LastPresence   *xmpp.Presence
 	LastPresenceAt time.Time
 }
 
@@ -28,7 +28,7 @@ func (u *User) FromGob(dec *gob.Decoder) {
 	var hasPresence bool
 	dec.Decode(&hasPresence)
 	if hasPresence {
-		p := &xml.Presence{}
+		p := &xmpp.Presence{}
 		p.FromGob(dec)
 		fromJID, _ := jid.NewWithString(p.From(), true)
 		toJID, _ := jid.NewWithString(p.To(), true)

@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -23,10 +23,10 @@ func TestXEP0199_Matching(t *testing.T) {
 
 	// test MatchesIQ
 	iqID := uuid.New()
-	iq := xml.NewIQType(iqID, xml.GetType)
+	iq := xmpp.NewIQType(iqID, xmpp.GetType)
 	iq.SetFromJID(j)
 
-	ping := xml.NewElementNamespace("ping", pingNamespace)
+	ping := xmpp.NewElementNamespace("ping", pingNamespace)
 	iq.AppendElement(ping)
 
 	require.True(t, x.MatchesIQ(iq))
@@ -45,27 +45,27 @@ func TestXEP0199_ReceivePing(t *testing.T) {
 	x := New(&Config{}, stm)
 
 	iqID := uuid.New()
-	iq := xml.NewIQType(iqID, xml.SetType)
+	iq := xmpp.NewIQType(iqID, xmpp.SetType)
 	iq.SetFromJID(j2)
 	iq.SetToJID(j2)
 
 	x.ProcessIQ(iq)
 	elem := stm.FetchElement()
-	require.Equal(t, xml.ErrForbidden.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrForbidden.Error(), elem.Error().Elements().All()[0].Name())
 
 	iq.SetToJID(j1)
 	x.ProcessIQ(iq)
 	elem = stm.FetchElement()
-	require.Equal(t, xml.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
 
-	ping := xml.NewElementNamespace("ping", pingNamespace)
+	ping := xmpp.NewElementNamespace("ping", pingNamespace)
 	iq.AppendElement(ping)
 
 	x.ProcessIQ(iq)
 	elem = stm.FetchElement()
-	require.Equal(t, xml.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
 
-	iq.SetType(xml.GetType)
+	iq.SetType(xmpp.GetType)
 	x.ProcessIQ(iq)
 	elem = stm.FetchElement()
 	require.Equal(t, iqID, elem.ID())
@@ -91,7 +91,7 @@ func TestXEP0199_SendPing(t *testing.T) {
 	require.NotNil(t, elem.Elements().ChildNamespace("ping", pingNamespace))
 
 	// send pong...
-	x.ProcessIQ(xml.NewIQType(elem.ID(), xml.ResultType))
+	x.ProcessIQ(xmpp.NewIQType(elem.ID(), xmpp.ResultType))
 	x.ResetDeadline()
 
 	// wait next ping...

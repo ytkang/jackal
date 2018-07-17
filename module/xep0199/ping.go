@@ -14,7 +14,7 @@ import (
 	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 	"github.com/pborman/uuid"
 )
 
@@ -59,13 +59,13 @@ func (x *Ping) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the ping module.
-func (x *Ping) MatchesIQ(iq *xml.IQ) bool {
+func (x *Ping) MatchesIQ(iq *xmpp.IQ) bool {
 	return x.isPongIQ(iq) || iq.Elements().ChildNamespace("ping", pingNamespace) != nil
 }
 
 // ProcessIQ processes a ping IQ taking according actions
 // over the associated stream.
-func (x *Ping) ProcessIQ(iq *xml.IQ) {
+func (x *Ping) ProcessIQ(iq *xmpp.IQ) {
 	if x.isPongIQ(iq) {
 		x.handlePongIQ(iq)
 		return
@@ -106,10 +106,10 @@ func (x *Ping) ResetDeadline() {
 	}
 }
 
-func (x *Ping) isPongIQ(iq *xml.IQ) bool {
+func (x *Ping) isPongIQ(iq *xmpp.IQ) bool {
 	x.pingMu.RLock()
 	defer x.pingMu.RUnlock()
-	return x.pingId == iq.ID() && (iq.IsResult() || iq.Type() == xml.ErrorType)
+	return x.pingId == iq.ID() && (iq.IsResult() || iq.Type() == xmpp.ErrorType)
 }
 
 func (x *Ping) sendPing() {
@@ -120,9 +120,9 @@ func (x *Ping) sendPing() {
 	pingId := x.pingId
 	x.pingMu.Unlock()
 
-	iq := xml.NewIQType(pingId, xml.GetType)
+	iq := xmpp.NewIQType(pingId, xmpp.GetType)
 	iq.SetTo(x.stm.JID().String())
-	iq.AppendElement(xml.NewElementNamespace("ping", pingNamespace))
+	iq.AppendElement(xmpp.NewElementNamespace("ping", pingNamespace))
 
 	x.stm.SendElement(iq)
 
@@ -141,7 +141,7 @@ func (x *Ping) waitForPong() {
 	}
 }
 
-func (x *Ping) handlePongIQ(iq *xml.IQ) {
+func (x *Ping) handlePongIQ(iq *xmpp.IQ) {
 	log.Infof("received pong... id: %s", iq.ID())
 
 	x.pingMu.Lock()

@@ -9,8 +9,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 // InStream represents a generic incoming stream.
@@ -22,7 +22,7 @@ type InStream interface {
 // InOutStream represents a generic incoming/outgoing stream.
 type InOutStream interface {
 	InStream
-	SendElement(elem xml.XElement)
+	SendElement(elem xmpp.XElement)
 }
 
 // C2S represents a client-to-server XMPP stream.
@@ -41,7 +41,7 @@ type C2S interface {
 	IsAuthenticated() bool
 	IsCompressed() bool
 
-	Presence() *xml.Presence
+	Presence() *xmpp.Presence
 }
 
 // S2SIn represents an incoming server-to-server XMPP stream.
@@ -58,7 +58,7 @@ type S2SOut interface {
 type MockC2S struct {
 	id      string
 	ctx     Context
-	elemCh  chan xml.XElement
+	elemCh  chan xmpp.XElement
 	actorCh chan func()
 	discCh  chan error
 	doneCh  chan<- struct{}
@@ -70,7 +70,7 @@ func NewMockC2S(id string, jid *jid.JID) *MockC2S {
 	stm := &MockC2S{
 		id:      id,
 		ctx:     ctx,
-		elemCh:  make(chan xml.XElement, 16),
+		elemCh:  make(chan xmpp.XElement, 16),
 		actorCh: make(chan func(), 64),
 		discCh:  make(chan error, 1),
 		doneCh:  doneCh,
@@ -176,21 +176,21 @@ func (m *MockC2S) IsDisconnected() bool {
 
 // SetPresence sets the mocked stream last received
 // presence element.
-func (m *MockC2S) SetPresence(presence *xml.Presence) {
+func (m *MockC2S) SetPresence(presence *xmpp.Presence) {
 	m.ctx.SetObject(presence, "presence")
 }
 
 // Presence returns last sent presence element.
-func (m *MockC2S) Presence() *xml.Presence {
+func (m *MockC2S) Presence() *xmpp.Presence {
 	switch v := m.ctx.Object("presence").(type) {
-	case *xml.Presence:
+	case *xmpp.Presence:
 		return v
 	}
 	return nil
 }
 
 // SendElement sends the given XML element.
-func (m *MockC2S) SendElement(elem xml.XElement) {
+func (m *MockC2S) SendElement(elem xmpp.XElement) {
 	m.actorCh <- func() {
 		m.sendElement(elem)
 	}
@@ -208,12 +208,12 @@ func (m *MockC2S) Disconnect(err error) {
 
 // FetchElement waits until a new XML element is sent to
 // the mocked stream and returns it.
-func (m *MockC2S) FetchElement() xml.XElement {
+func (m *MockC2S) FetchElement() xmpp.XElement {
 	select {
 	case e := <-m.elemCh:
 		return e
 	case <-time.After(time.Second * 5):
-		return &xml.Element{}
+		return &xmpp.Element{}
 	}
 }
 
@@ -238,7 +238,7 @@ func (m *MockC2S) actorLoop() {
 	}
 }
 
-func (m *MockC2S) sendElement(elem xml.XElement) {
+func (m *MockC2S) sendElement(elem xmpp.XElement) {
 	select {
 	case m.elemCh <- elem:
 		return

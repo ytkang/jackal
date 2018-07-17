@@ -11,8 +11,8 @@ import (
 
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -30,7 +30,7 @@ func TestOffline_ArchiveMessage(t *testing.T) {
 	x := New(&Config{QueueSize: 1}, stm)
 
 	msgID := uuid.New()
-	msg := xml.NewMessageType(msgID, "normal")
+	msg := xmpp.NewMessageType(msgID, "normal")
 	msg.SetFromJID(j1)
 	msg.SetToJID(j2)
 	x.ArchiveMessage(msg)
@@ -42,7 +42,7 @@ func TestOffline_ArchiveMessage(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 1, len(msgs))
 
-	msg2 := xml.NewMessageType(msgID, "normal")
+	msg2 := xmpp.NewMessageType(msgID, "normal")
 	msg2.SetFromJID(j1)
 	msg2.SetToJID(j2)
 
@@ -50,7 +50,7 @@ func TestOffline_ArchiveMessage(t *testing.T) {
 
 	elem := stm.FetchElement()
 	require.NotNil(t, elem)
-	require.Equal(t, xml.ErrServiceUnavailable.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrServiceUnavailable.Error(), elem.Error().Elements().All()[0].Name())
 
 	// deliver offline messages...
 	stm2 := stream.NewMockC2S("abcd", j2)

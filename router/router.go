@@ -13,8 +13,8 @@ import (
 	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 var (
@@ -119,13 +119,13 @@ func ReloadBlockList(username string) {
 
 // Route routes a stanza applying server rules for handling XML stanzas.
 // (https://xmpp.org/rfcs/rfc3921.html#rules)
-func Route(elem xml.Stanza) error {
+func Route(elem xmpp.Stanza) error {
 	return instance().route(elem, false)
 }
 
 // MustRoute routes a stanza applying server rules for handling XML stanzas
 // ignoring blocking lists.
-func MustRoute(elem xml.Stanza) error {
+func MustRoute(elem xmpp.Stanza) error {
 	return instance().route(elem, true)
 }
 
@@ -236,7 +236,7 @@ func (r *router) getBlockList(username string) []*jid.JID {
 	return bl
 }
 
-func (r *router) route(stanza xml.Stanza, ignoreBlocking bool) error {
+func (r *router) route(stanza xmpp.Stanza, ignoreBlocking bool) error {
 	toJID := stanza.ToJID()
 	if !ignoreBlocking && !toJID.IsServer() {
 		if r.isBlockedJID(stanza.FromJID(), toJID.Node()) {
@@ -267,7 +267,7 @@ func (r *router) route(stanza xml.Stanza, ignoreBlocking bool) error {
 		return ErrResourceNotFound
 	}
 	switch stanza.(type) {
-	case *xml.Message:
+	case *xmpp.Message:
 		// send to highest priority stream
 		stm := rcps[0]
 		var highestPriority int8
@@ -292,7 +292,7 @@ func (r *router) route(stanza xml.Stanza, ignoreBlocking bool) error {
 	return nil
 }
 
-func (r *router) remoteRoute(stanza xml.Stanza) error {
+func (r *router) remoteRoute(stanza xmpp.Stanza) error {
 	if r.cfg.GetS2SOut == nil {
 		return ErrFailedRemoteConnect
 	}

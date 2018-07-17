@@ -11,8 +11,8 @@ import (
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 const registerNamespace = "jabber:iq:register"
@@ -48,13 +48,13 @@ func (x *Register) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the in-band registration module.
-func (x *Register) MatchesIQ(iq *xml.IQ) bool {
+func (x *Register) MatchesIQ(iq *xmpp.IQ) bool {
 	return iq.Elements().ChildNamespace("query", registerNamespace) != nil
 }
 
 // ProcessIQ processes an in-band registration IQ
 // taking according actions over the associated stream.
-func (x *Register) ProcessIQ(iq *xml.IQ) {
+func (x *Register) ProcessIQ(iq *xmpp.IQ) {
 	if !x.isValidToJid(iq.ToJID()) {
 		x.stm.SendElement(iq.ForbiddenError())
 		return
@@ -99,20 +99,20 @@ func (x *Register) ProcessIQ(iq *xml.IQ) {
 	}
 }
 
-func (x *Register) sendRegistrationFields(iq *xml.IQ, query xml.XElement) {
+func (x *Register) sendRegistrationFields(iq *xmpp.IQ, query xmpp.XElement) {
 	if query.Elements().Count() > 0 {
 		x.stm.SendElement(iq.BadRequestError())
 		return
 	}
 	result := iq.ResultIQ()
-	q := xml.NewElementNamespace("query", registerNamespace)
-	q.AppendElement(xml.NewElementName("username"))
-	q.AppendElement(xml.NewElementName("password"))
+	q := xmpp.NewElementNamespace("query", registerNamespace)
+	q.AppendElement(xmpp.NewElementName("username"))
+	q.AppendElement(xmpp.NewElementName("password"))
 	result.AppendElement(q)
 	x.stm.SendElement(result)
 }
 
-func (x *Register) registerNewUser(iq *xml.IQ, query xml.XElement) {
+func (x *Register) registerNewUser(iq *xmpp.IQ, query xmpp.XElement) {
 	userEl := query.Elements().Child("username")
 	passwordEl := query.Elements().Child("password")
 	if userEl == nil || passwordEl == nil || len(userEl.Text()) == 0 || len(passwordEl.Text()) == 0 {
@@ -142,7 +142,7 @@ func (x *Register) registerNewUser(iq *xml.IQ, query xml.XElement) {
 	x.registered = true
 }
 
-func (x *Register) cancelRegistration(iq *xml.IQ, query xml.XElement) {
+func (x *Register) cancelRegistration(iq *xmpp.IQ, query xmpp.XElement) {
 	if !x.cfg.AllowCancel {
 		x.stm.SendElement(iq.NotAllowedError())
 		return
@@ -159,7 +159,7 @@ func (x *Register) cancelRegistration(iq *xml.IQ, query xml.XElement) {
 	x.stm.SendElement(iq.ResultIQ())
 }
 
-func (x *Register) changePassword(password string, username string, iq *xml.IQ) {
+func (x *Register) changePassword(password string, username string, iq *xmpp.IQ) {
 	if !x.cfg.AllowChange {
 		x.stm.SendElement(iq.NotAllowedError())
 		return

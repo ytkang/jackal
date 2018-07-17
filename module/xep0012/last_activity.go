@@ -15,8 +15,8 @@ import (
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 const lastActivityNamespace = "jabber:iq:last"
@@ -41,13 +41,13 @@ func (x *LastActivity) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the last activity module.
-func (x *LastActivity) MatchesIQ(iq *xml.IQ) bool {
+func (x *LastActivity) MatchesIQ(iq *xmpp.IQ) bool {
 	return iq.IsGet() && iq.Elements().ChildNamespace("query", lastActivityNamespace) != nil
 }
 
 // ProcessIQ processes a last activity IQ taking according actions
 // over the associated stream.
-func (x *LastActivity) ProcessIQ(iq *xml.IQ) {
+func (x *LastActivity) ProcessIQ(iq *xmpp.IQ) {
 	toJID := iq.ToJID()
 	if toJID.IsServer() {
 		x.sendServerUptime(iq)
@@ -69,12 +69,12 @@ func (x *LastActivity) ProcessIQ(iq *xml.IQ) {
 	}
 }
 
-func (x *LastActivity) sendServerUptime(iq *xml.IQ) {
+func (x *LastActivity) sendServerUptime(iq *xmpp.IQ) {
 	secs := int(time.Duration(time.Now().UnixNano()-x.startTime.UnixNano()) / time.Second)
 	x.sendReply(iq, secs, "")
 }
 
-func (x *LastActivity) sendUserLastActivity(iq *xml.IQ, to *jid.JID) {
+func (x *LastActivity) sendUserLastActivity(iq *xmpp.IQ, to *jid.JID) {
 	if len(router.UserStreams(to.Node())) > 0 { // user online
 		x.sendReply(iq, 0, "")
 		return
@@ -100,8 +100,8 @@ func (x *LastActivity) sendUserLastActivity(iq *xml.IQ, to *jid.JID) {
 	x.sendReply(iq, secs, status)
 }
 
-func (x *LastActivity) sendReply(iq *xml.IQ, secs int, status string) {
-	q := xml.NewElementNamespace("query", lastActivityNamespace)
+func (x *LastActivity) sendReply(iq *xmpp.IQ, secs int, status string) {
+	q := xmpp.NewElementNamespace("query", lastActivityNamespace)
 	q.SetText(status)
 	q.SetAttribute("seconds", strconv.Itoa(secs))
 	res := iq.ResultIQ()

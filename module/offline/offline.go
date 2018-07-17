@@ -10,7 +10,7 @@ import (
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 const offlineNamespace = "msgoffline"
@@ -45,7 +45,7 @@ func (o *Offline) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 }
 
 // ArchiveMessage archives a new offline messages into the storage.
-func (o *Offline) ArchiveMessage(message *xml.Message) {
+func (o *Offline) ArchiveMessage(message *xmpp.Message) {
 	o.actorCh <- func() {
 		o.archiveMessage(message)
 	}
@@ -70,7 +70,7 @@ func (o *Offline) actorLoop(doneCh <-chan struct{}) {
 	}
 }
 
-func (o *Offline) archiveMessage(message *xml.Message) {
+func (o *Offline) archiveMessage(message *xmpp.Message) {
 	toJid := message.ToJID()
 	queueSize, err := storage.Instance().CountOfflineMessages(toJid.Node())
 	if err != nil {
@@ -78,13 +78,13 @@ func (o *Offline) archiveMessage(message *xml.Message) {
 		return
 	}
 	if queueSize >= o.cfg.QueueSize {
-		response := xml.NewElementFromElement(message)
+		response := xmpp.NewElementFromElement(message)
 		response.SetFrom(toJid.String())
 		response.SetTo(o.stm.JID().String())
 		o.stm.SendElement(response.ServiceUnavailableError())
 		return
 	}
-	delayed := xml.NewElementFromElement(message)
+	delayed := xmpp.NewElementFromElement(message)
 	delayed.Delay(o.stm.Domain(), "Offline Storage")
 	if err := storage.Instance().InsertOfflineMessage(delayed, toJid.Node()); err != nil {
 		log.Errorf("%v", err)

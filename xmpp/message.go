@@ -3,12 +3,12 @@
  * See the LICENSE file for more information.
  */
 
-package xml
+package xmpp
 
 import (
 	"fmt"
 
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 const (

@@ -16,7 +16,7 @@ import (
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 	"github.com/pborman/uuid"
 )
 
@@ -54,13 +54,13 @@ func (r *Roster) RegisterDisco(_ *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the roster module.
-func (r *Roster) MatchesIQ(iq *xml.IQ) bool {
+func (r *Roster) MatchesIQ(iq *xmpp.IQ) bool {
 	return iq.Elements().ChildNamespace("query", rosterNamespace) != nil
 }
 
 // ProcessIQ processes a roster IQ taking according actions
 // over the associated stream.
-func (r *Roster) ProcessIQ(iq *xml.IQ) {
+func (r *Roster) ProcessIQ(iq *xmpp.IQ) {
 	r.actorCh <- func() {
 		q := iq.Elements().ChildNamespace("query", rosterNamespace)
 		if iq.IsGet() {
@@ -74,7 +74,7 @@ func (r *Roster) ProcessIQ(iq *xml.IQ) {
 }
 
 // ProcessPresence process an incoming roster presence.
-func (r *Roster) ProcessPresence(presence *xml.Presence) {
+func (r *Roster) ProcessPresence(presence *xmpp.Presence) {
 	doneCh := make(chan struct{})
 	r.actorCh <- func() {
 		if err := r.ph.ProcessPresence(presence); err != nil {
@@ -96,7 +96,7 @@ func (r *Roster) actorLoop(doneCh <-chan struct{}) {
 	}
 }
 
-func (r *Roster) sendRoster(iq *xml.IQ, query xml.XElement) {
+func (r *Roster) sendRoster(iq *xmpp.IQ, query xmpp.XElement) {
 	if query.Elements().Count() > 0 {
 		r.stm.SendElement(iq.BadRequestError())
 		return
@@ -116,7 +116,7 @@ func (r *Roster) sendRoster(iq *xml.IQ, query xml.XElement) {
 	res := iq.ResultIQ()
 	if v == 0 || v < ver.DeletionVer {
 		// push all roster items
-		q := xml.NewElementNamespace("query", rosterNamespace)
+		q := xmpp.NewElementNamespace("query", rosterNamespace)
 		if r.cfg.Versioning {
 			q.SetAttribute("ver", fmt.Sprintf("v%d", ver.Ver))
 		}
@@ -130,8 +130,8 @@ func (r *Roster) sendRoster(iq *xml.IQ, query xml.XElement) {
 		r.stm.SendElement(res)
 		for _, itm := range itms {
 			if itm.Ver > v {
-				iq := xml.NewIQType(uuid.New(), xml.SetType)
-				q := xml.NewElementNamespace("query", rosterNamespace)
+				iq := xmpp.NewIQType(uuid.New(), xmpp.SetType)
+				q := xmpp.NewElementNamespace("query", rosterNamespace)
 				q.SetAttribute("ver", fmt.Sprintf("v%d", itm.Ver))
 				q.AppendElement(itm.Element())
 				iq.AppendElement(q)
@@ -142,7 +142,7 @@ func (r *Roster) sendRoster(iq *xml.IQ, query xml.XElement) {
 	r.stm.Context().SetBool(true, rosterRequestedCtxKey)
 }
 
-func (r *Roster) updateRoster(iq *xml.IQ, query xml.XElement) {
+func (r *Roster) updateRoster(iq *xmpp.IQ, query xmpp.XElement) {
 	itms := query.Elements().Children("item")
 	if len(itms) != 1 {
 		r.stm.SendElement(iq.BadRequestError())
@@ -201,7 +201,7 @@ func (r *Roster) updateItem(ri *rostermodel.Item) error {
 }
 
 func (r *Roster) removeItem(ri *rostermodel.Item) error {
-	var unsubscribe, unsubscribed *xml.Presence
+	var unsubscribe, unsubscribed *xmpp.Presence
 
 	userJID := r.stm.JID().ToBareJID()
 	contactJID := ri.ContactJID()
@@ -217,12 +217,12 @@ func (r *Roster) removeItem(ri *rostermodel.Item) error {
 		usrSub = usrRi.Subscription
 		switch usrSub {
 		case rostermodel.SubscriptionTo:
-			unsubscribe = xml.NewPresence(userJID, contactJID, xml.UnsubscribeType)
+			unsubscribe = xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribeType)
 		case rostermodel.SubscriptionFrom:
-			unsubscribed = xml.NewPresence(userJID, contactJID, xml.UnsubscribedType)
+			unsubscribed = xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribedType)
 		case rostermodel.SubscriptionBoth:
-			unsubscribe = xml.NewPresence(userJID, contactJID, xml.UnsubscribeType)
-			unsubscribed = xml.NewPresence(userJID, contactJID, xml.UnsubscribedType)
+			unsubscribe = xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribeType)
+			unsubscribed = xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribedType)
 		}
 		usrRi.Subscription = rostermodel.SubscriptionRemove
 		usrRi.Ask = false
@@ -242,7 +242,7 @@ func (r *Roster) removeItem(ri *rostermodel.Item) error {
 		}
 		if cntRi != nil {
 			if cntRi.Subscription == rostermodel.SubscriptionFrom || cntRi.Subscription == rostermodel.SubscriptionBoth {
-				routePresencesFrom(contactJID, userJID, xml.UnavailableType)
+				routePresencesFrom(contactJID, userJID, xmpp.UnavailableType)
 			}
 			switch cntRi.Subscription {
 			case rostermodel.SubscriptionBoth:
@@ -268,7 +268,7 @@ func (r *Roster) removeItem(ri *rostermodel.Item) error {
 	}
 
 	if usrSub == rostermodel.SubscriptionFrom || usrSub == rostermodel.SubscriptionBoth {
-		routePresencesFrom(userJID, contactJID, xml.UnavailableType)
+		routePresencesFrom(userJID, contactJID, xmpp.UnavailableType)
 	}
 	return nil
 }

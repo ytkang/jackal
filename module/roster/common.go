@@ -11,8 +11,8 @@ import (
 	"github.com/ortuman/jackal/model/rostermodel"
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 )
 
@@ -39,7 +39,7 @@ func deleteItem(ri *rostermodel.Item, pushTo *jid.JID, versioning bool) error {
 }
 
 func pushItem(ri *rostermodel.Item, to *jid.JID, versioning bool) error {
-	query := xml.NewElementNamespace("query", rosterNamespace)
+	query := xmpp.NewElementNamespace("query", rosterNamespace)
 	if versioning {
 		query.SetAttribute("ver", fmt.Sprintf("v%d", ri.Ver))
 	}
@@ -50,7 +50,7 @@ func pushItem(ri *rostermodel.Item, to *jid.JID, versioning bool) error {
 		if !stm.Context().Bool(rosterRequestedCtxKey) {
 			continue
 		}
-		pushEl := xml.NewIQType(uuid.New(), xml.SetType)
+		pushEl := xmpp.NewIQType(uuid.New(), xmpp.SetType)
 		pushEl.SetTo(stm.JID().String())
 		pushEl.AppendElement(query)
 		stm.SendElement(pushEl)
@@ -72,7 +72,7 @@ func deleteNotification(contact string, userJID *jid.JID) (deleted bool, err err
 	return true, nil
 }
 
-func insertOrUpdateNotification(contact string, userJID *jid.JID, presence *xml.Presence) error {
+func insertOrUpdateNotification(contact string, userJID *jid.JID, presence *xmpp.Presence) error {
 	rn := &rostermodel.Notification{
 		Contact:  contact,
 		JID:      userJID.String(),
@@ -84,7 +84,7 @@ func insertOrUpdateNotification(contact string, userJID *jid.JID, presence *xml.
 func routePresencesFrom(from *jid.JID, to *jid.JID, presenceType string) {
 	stms := router.UserStreams(from.Node())
 	for _, stm := range stms {
-		p := xml.NewPresence(stm.JID(), to.ToBareJID(), presenceType)
+		p := xmpp.NewPresence(stm.JID(), to.ToBareJID(), presenceType)
 		if presence := stm.Presence(); presence != nil && presence.IsAvailable() {
 			p.AppendElements(presence.Elements().All())
 		}

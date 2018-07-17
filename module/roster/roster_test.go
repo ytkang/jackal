@@ -13,8 +13,8 @@ import (
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -29,8 +29,8 @@ func TestRoster_MatchesIQ(t *testing.T) {
 	r := New(&Config{}, stm)
 	defer stm.Disconnect(nil)
 
-	iq := xml.NewIQType(uuid.New(), xml.GetType)
-	iq.AppendElement(xml.NewElementNamespace("query", rosterNamespace))
+	iq := xmpp.NewIQType(uuid.New(), xmpp.GetType)
+	iq.AppendElement(xmpp.NewElementNamespace("query", rosterNamespace))
 
 	require.True(t, r.MatchesIQ(iq))
 }
@@ -48,25 +48,25 @@ func TestRoster_FetchRoster(t *testing.T) {
 	r := New(&Config{}, stm)
 	defer stm.Disconnect(nil)
 
-	iq := xml.NewIQType(uuid.New(), xml.ResultType)
-	q := xml.NewElementNamespace("query", rosterNamespace)
-	q.AppendElement(xml.NewElementName("q2"))
+	iq := xmpp.NewIQType(uuid.New(), xmpp.ResultType)
+	q := xmpp.NewElementNamespace("query", rosterNamespace)
+	q.AppendElement(xmpp.NewElementName("q2"))
 	iq.AppendElement(q)
 
 	r.ProcessIQ(iq)
 	elem := stm.FetchElement()
-	require.Equal(t, xml.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
 
-	iq.SetType(xml.GetType)
+	iq.SetType(xmpp.GetType)
 	r.ProcessIQ(iq)
 	elem = stm.FetchElement()
-	require.Equal(t, xml.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
 	q.ClearElements()
 
 	r.ProcessIQ(iq)
 	elem = stm.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ResultType, elem.Type())
+	require.Equal(t, xmpp.ResultType, elem.Type())
 
 	query := elem.Elements().ChildNamespace("query", rosterNamespace)
 	require.Equal(t, 0, query.Elements().Count())
@@ -95,27 +95,27 @@ func TestRoster_FetchRoster(t *testing.T) {
 	r.ProcessIQ(iq)
 	elem = stm.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ResultType, elem.Type())
+	require.Equal(t, xmpp.ResultType, elem.Type())
 
 	query2 := elem.Elements().ChildNamespace("query", rosterNamespace)
 	require.Equal(t, 2, query2.Elements().Count())
 	require.True(t, stm.Context().Bool(rosterRequestedCtxKey))
 
 	// test versioning
-	iq = xml.NewIQType(uuid.New(), xml.GetType)
-	q = xml.NewElementNamespace("query", rosterNamespace)
+	iq = xmpp.NewIQType(uuid.New(), xmpp.GetType)
+	q = xmpp.NewElementNamespace("query", rosterNamespace)
 	q.SetAttribute("ver", "v1")
 	iq.AppendElement(q)
 
 	r.ProcessIQ(iq)
 	elem = stm.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ResultType, elem.Type())
+	require.Equal(t, xmpp.ResultType, elem.Type())
 
 	// expect set item...
 	elem = stm.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.SetType, elem.Type())
+	require.Equal(t, xmpp.SetType, elem.Type())
 	query2 = elem.Elements().ChildNamespace("query", rosterNamespace)
 	require.Equal(t, "v2", query2.Attributes().Get("ver"))
 	item := query2.Elements().Child("item")
@@ -125,7 +125,7 @@ func TestRoster_FetchRoster(t *testing.T) {
 	r = New(&Config{}, stm)
 	r.ProcessIQ(iq)
 	elem = stm.FetchElement()
-	require.Equal(t, xml.ErrInternalServerError.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrInternalServerError.Error(), elem.Error().Elements().All()[0].Name())
 
 	storage.DeactivateMockedError()
 }
@@ -155,9 +155,9 @@ func TestRoster_Update(t *testing.T) {
 	router.Bind(stm2)
 
 	iqID := uuid.New()
-	iq := xml.NewIQType(iqID, xml.SetType)
-	q := xml.NewElementNamespace("query", rosterNamespace)
-	item := xml.NewElementName("item")
+	iq := xmpp.NewIQType(iqID, xmpp.SetType)
+	q := xmpp.NewElementNamespace("query", rosterNamespace)
+	item := xmpp.NewElementName("item")
 	item.SetAttribute("jid", "noelia@jackal.im")
 	item.SetAttribute("subscription", rostermodel.SubscriptionNone)
 	item.SetAttribute("name", "My Juliet")
@@ -167,7 +167,7 @@ func TestRoster_Update(t *testing.T) {
 
 	r.ProcessIQ(iq)
 	elem := stm1.FetchElement()
-	require.Equal(t, xml.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
+	require.Equal(t, xmpp.ErrBadRequest.Error(), elem.Error().Elements().All()[0].Name())
 
 	q.ClearElements()
 	q.AppendElement(item)
@@ -175,12 +175,12 @@ func TestRoster_Update(t *testing.T) {
 	r.ProcessIQ(iq)
 	elem = stm1.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ResultType, elem.Type())
+	require.Equal(t, xmpp.ResultType, elem.Type())
 	require.Equal(t, iqID, elem.ID())
 
 	// expecting roster push...
 	elem = stm2.FetchElement()
-	require.Equal(t, xml.SetType, elem.Type())
+	require.Equal(t, xmpp.SetType, elem.Type())
 
 	// update name
 	item.SetAttribute("name", "My Girl")
@@ -190,7 +190,7 @@ func TestRoster_Update(t *testing.T) {
 	r.ProcessIQ(iq)
 	elem = stm1.FetchElement()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ResultType, elem.Type())
+	require.Equal(t, xmpp.ResultType, elem.Type())
 	require.Equal(t, iqID, elem.ID())
 
 	ri, err := storage.Instance().FetchRosterItem("ortuman", "noelia@jackal.im")
@@ -235,9 +235,9 @@ func TestRoster_RemoveItem(t *testing.T) {
 
 	// remove item
 	iqID := uuid.New()
-	iq := xml.NewIQType(iqID, xml.SetType)
-	q := xml.NewElementNamespace("query", rosterNamespace)
-	item := xml.NewElementName("item")
+	iq := xmpp.NewIQType(iqID, xmpp.SetType)
+	q := xmpp.NewElementNamespace("query", rosterNamespace)
+	item := xmpp.NewElementName("item")
 	item.SetAttribute("jid", "noelia@jackal.im")
 	item.SetAttribute("subscription", rostermodel.SubscriptionRemove)
 	q.AppendElement(item)

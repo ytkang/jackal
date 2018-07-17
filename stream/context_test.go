@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 	"github.com/stretchr/testify/require"
 )
 
 func TestContext_Object(t *testing.T) {
 	c, _ := NewContext()
 	require.Nil(t, c.Object("obj"))
-	e := xml.NewElementName("presence")
+	e := xmpp.NewElementName("presence")
 	c.SetObject(e, "obj")
 	require.Equal(t, e, c.Object("obj"))
 }

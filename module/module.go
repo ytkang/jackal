@@ -7,7 +7,7 @@ package module
 
 import (
 	"github.com/ortuman/jackal/module/xep0030"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 // Module represents a generic XMPP module.
@@ -23,9 +23,9 @@ type IQHandler interface {
 
 	// MatchesIQ returns whether or not an IQ should be
 	// processed by the module.
-	MatchesIQ(iq *xml.IQ) bool
+	MatchesIQ(iq *xmpp.IQ) bool
 
 	// ProcessIQ processes a module IQ taking according actions
 	// over the associated stream.
-	ProcessIQ(iq *xml.IQ)
+	ProcessIQ(iq *xmpp.IQ)
 }

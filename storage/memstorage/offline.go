@@ -5,14 +5,14 @@
 
 package memstorage
 
-import "github.com/ortuman/jackal/xml"
+import "github.com/ortuman/jackal/xmpp"
 
 // InsertOfflineMessage inserts a new message element into
 // user's offline queue.
-func (m *Storage) InsertOfflineMessage(message xml.XElement, username string) error {
+func (m *Storage) InsertOfflineMessage(message xmpp.XElement, username string) error {
 	return m.inWriteLock(func() error {
 		msgs := m.offlineMessages[username]
-		msgs = append(msgs, xml.NewElementFromElement(message))
+		msgs = append(msgs, xmpp.NewElementFromElement(message))
 		m.offlineMessages[username] = msgs
 		return nil
 	})
@@ -29,8 +29,8 @@ func (m *Storage) CountOfflineMessages(username string) (int, error) {
 }
 
 // FetchOfflineMessages retrieves from storage current user offline queue.
-func (m *Storage) FetchOfflineMessages(username string) ([]xml.XElement, error) {
-	var ret []xml.XElement
+func (m *Storage) FetchOfflineMessages(username string) ([]xmpp.XElement, error) {
+	var ret []xmpp.XElement
 	err := m.inReadLock(func() error {
 		ret = m.offlineMessages[username]
 		return nil

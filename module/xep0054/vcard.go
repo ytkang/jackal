@@ -10,7 +10,7 @@ import (
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 const vCardNamespace = "vcard-temp"
@@ -42,13 +42,13 @@ func (x *VCard) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the vCard module.
-func (x *VCard) MatchesIQ(iq *xml.IQ) bool {
+func (x *VCard) MatchesIQ(iq *xmpp.IQ) bool {
 	return (iq.IsGet() || iq.IsSet()) && iq.Elements().ChildNamespace("vCard", vCardNamespace) != nil
 }
 
 // ProcessIQ processes a vCard IQ taking according actions
 // over the associated stream.
-func (x *VCard) ProcessIQ(iq *xml.IQ) {
+func (x *VCard) ProcessIQ(iq *xmpp.IQ) {
 	x.actorCh <- func() {
 		vCard := iq.Elements().ChildNamespace("vCard", vCardNamespace)
 		if iq.IsGet() {
@@ -70,7 +70,7 @@ func (x *VCard) actorLoop(doneCh <-chan struct{}) {
 	}
 }
 
-func (x *VCard) getVCard(vCard xml.XElement, iq *xml.IQ) {
+func (x *VCard) getVCard(vCard xmpp.XElement, iq *xmpp.IQ) {
 	if vCard.Elements().Count() > 0 {
 		x.stm.SendElement(iq.BadRequestError())
 		return
@@ -97,12 +97,12 @@ func (x *VCard) getVCard(vCard xml.XElement, iq *xml.IQ) {
 		resultIQ.AppendElement(resElem)
 	} else {
 		// empty vCard
-		resultIQ.AppendElement(xml.NewElementNamespace("vCard", vCardNamespace))
+		resultIQ.AppendElement(xmpp.NewElementNamespace("vCard", vCardNamespace))
 	}
 	x.stm.SendElement(resultIQ)
 }
 
-func (x *VCard) setVCard(vCard xml.XElement, iq *xml.IQ) {
+func (x *VCard) setVCard(vCard xmpp.XElement, iq *xmpp.IQ) {
 	toJid := iq.ToJID()
 	if toJid.IsServer() || (toJid.IsBare() && toJid.Node() == x.stm.Username()) {
 		log.Infof("saving vcard... (%s/%s)", x.stm.Username(), x.stm.Resource())

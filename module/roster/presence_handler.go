@@ -13,18 +13,18 @@ import (
 	"github.com/ortuman/jackal/model/rostermodel"
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 var onlineJIDs sync.Map
 
 // OnlinePresencesMatchingJID returns current online presences matching a given JID.
-func OnlinePresencesMatchingJID(j *jid.JID) []*xml.Presence {
-	var ret []*xml.Presence
+func OnlinePresencesMatchingJID(j *jid.JID) []*xmpp.Presence {
+	var ret []*xmpp.Presence
 	onlineJIDs.Range(func(_, value interface{}) bool {
 		switch presence := value.(type) {
-		case *xml.Presence:
+		case *xmpp.Presence:
 			if onlineJIDMatchesJID(presence.FromJID(), j) {
 				ret = append(ret, presence)
 			}
@@ -56,25 +56,25 @@ func NewPresenceHandler(cfg *Config) *PresenceHandler {
 }
 
 // ProcessPresence processes an incoming presence stanza.
-func (ph *PresenceHandler) ProcessPresence(presence *xml.Presence) error {
+func (ph *PresenceHandler) ProcessPresence(presence *xmpp.Presence) error {
 	switch presence.Type() {
-	case xml.SubscribeType:
+	case xmpp.SubscribeType:
 		return ph.processSubscribe(presence)
-	case xml.SubscribedType:
+	case xmpp.SubscribedType:
 		return ph.processSubscribed(presence)
-	case xml.UnsubscribeType:
+	case xmpp.UnsubscribeType:
 		return ph.processUnsubscribe(presence)
-	case xml.UnsubscribedType:
+	case xmpp.UnsubscribedType:
 		return ph.processUnsubscribed(presence)
-	case xml.ProbeType:
+	case xmpp.ProbeType:
 		return ph.processProbePresence(presence)
-	case xml.AvailableType, xml.UnavailableType:
+	case xmpp.AvailableType, xmpp.UnavailableType:
 		return ph.processAvailablePresence(presence)
 	}
 	return nil
 }
 
-func (ph *PresenceHandler) processSubscribe(presence *xml.Presence) error {
+func (ph *PresenceHandler) processSubscribe(presence *xmpp.Presence) error {
 	userJID := presence.FromJID().ToBareJID()
 	contactJID := presence.ToJID().ToBareJID()
 
@@ -110,7 +110,7 @@ func (ph *PresenceHandler) processSubscribe(presence *xml.Presence) error {
 		}
 	}
 	// stamp the presence stanza of type "subscribe" with the user's bare JID as the 'from' address
-	p := xml.NewPresence(userJID, contactJID, xml.SubscribeType)
+	p := xmpp.NewPresence(userJID, contactJID, xmpp.SubscribeType)
 	p.AppendElements(presence.Elements().All())
 
 	if host.IsLocalHost(contactJID.Domain()) {
@@ -123,7 +123,7 @@ func (ph *PresenceHandler) processSubscribe(presence *xml.Presence) error {
 	return nil
 }
 
-func (ph *PresenceHandler) processSubscribed(presence *xml.Presence) error {
+func (ph *PresenceHandler) processSubscribed(presence *xmpp.Presence) error {
 	userJID := presence.ToJID().ToBareJID()
 	contactJID := presence.FromJID().ToBareJID()
 
@@ -159,7 +159,7 @@ func (ph *PresenceHandler) processSubscribed(presence *xml.Presence) error {
 		}
 	}
 	// stamp the presence stanza of type "subscribed" with the contact's bare JID as the 'from' address
-	p := xml.NewPresence(contactJID, userJID, xml.SubscribedType)
+	p := xmpp.NewPresence(contactJID, userJID, xmpp.SubscribedType)
 	p.AppendElements(presence.Elements().All())
 
 	if host.IsLocalHost(userJID.Domain()) {
@@ -183,11 +183,11 @@ func (ph *PresenceHandler) processSubscribed(presence *xml.Presence) error {
 		}
 	}
 	router.Route(p)
-	routePresencesFrom(contactJID, userJID, xml.AvailableType)
+	routePresencesFrom(contactJID, userJID, xmpp.AvailableType)
 	return nil
 }
 
-func (ph *PresenceHandler) processUnsubscribe(presence *xml.Presence) error {
+func (ph *PresenceHandler) processUnsubscribe(presence *xmpp.Presence) error {
 	userJID := presence.FromJID().ToBareJID()
 	contactJID := presence.ToJID().ToBareJID()
 
@@ -214,7 +214,7 @@ func (ph *PresenceHandler) processUnsubscribe(presence *xml.Presence) error {
 		}
 	}
 	// stamp the presence stanza of type "unsubscribe" with the users's bare JID as the 'from' address
-	p := xml.NewPresence(userJID, contactJID, xml.UnsubscribeType)
+	p := xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribeType)
 	p.AppendElements(presence.Elements().All())
 
 	if host.IsLocalHost(contactJID.Domain()) {
@@ -237,12 +237,12 @@ func (ph *PresenceHandler) processUnsubscribe(presence *xml.Presence) error {
 	router.Route(p)
 
 	if usrSub == rostermodel.SubscriptionTo || usrSub == rostermodel.SubscriptionBoth {
-		routePresencesFrom(contactJID, userJID, xml.UnavailableType)
+		routePresencesFrom(contactJID, userJID, xmpp.UnavailableType)
 	}
 	return nil
 }
 
-func (ph *PresenceHandler) processUnsubscribed(presence *xml.Presence) error {
+func (ph *PresenceHandler) processUnsubscribed(presence *xmpp.Presence) error {
 	userJID := presence.ToJID().ToBareJID()
 	contactJID := presence.FromJID().ToBareJID()
 
@@ -278,7 +278,7 @@ func (ph *PresenceHandler) processUnsubscribed(presence *xml.Presence) error {
 	}
 routePresence:
 	// stamp the presence stanza of type "unsubscribed" with the contact's bare JID as the 'from' address
-	p := xml.NewPresence(contactJID, userJID, xml.UnsubscribedType)
+	p := xmpp.NewPresence(contactJID, userJID, xmpp.UnsubscribedType)
 	p.AppendElements(presence.Elements().All())
 
 	if host.IsLocalHost(userJID.Domain()) {
@@ -304,12 +304,12 @@ routePresence:
 	router.Route(p)
 
 	if cntSub == rostermodel.SubscriptionFrom || cntSub == rostermodel.SubscriptionBoth {
-		routePresencesFrom(contactJID, userJID, xml.UnavailableType)
+		routePresencesFrom(contactJID, userJID, xmpp.UnavailableType)
 	}
 	return nil
 }
 
-func (ph *PresenceHandler) processProbePresence(presence *xml.Presence) error {
+func (ph *PresenceHandler) processProbePresence(presence *xmpp.Presence) error {
 	userJID := presence.ToJID().ToBareJID()
 	contactJID := presence.FromJID().ToBareJID()
 
@@ -324,18 +324,18 @@ func (ph *PresenceHandler) processProbePresence(presence *xml.Presence) error {
 		return err
 	}
 	if usr == nil || ri == nil || (ri.Subscription != rostermodel.SubscriptionBoth && ri.Subscription != rostermodel.SubscriptionFrom) {
-		router.Route(xml.NewPresence(userJID, contactJID, xml.UnsubscribedType))
+		router.Route(xmpp.NewPresence(userJID, contactJID, xmpp.UnsubscribedType))
 		return nil
 	}
 	if usr.LastPresence != nil {
-		p := xml.NewPresence(usr.LastPresence.FromJID(), contactJID, usr.LastPresence.Type())
+		p := xmpp.NewPresence(usr.LastPresence.FromJID(), contactJID, usr.LastPresence.Type())
 		p.AppendElements(usr.LastPresence.Elements().All())
 		router.Route(p)
 	}
 	return nil
 }
 
-func (ph *PresenceHandler) processAvailablePresence(presence *xml.Presence) error {
+func (ph *PresenceHandler) processAvailablePresence(presence *xmpp.Presence) error {
 	fromJID := presence.FromJID()
 
 	userJID := fromJID.ToBareJID()
@@ -371,7 +371,7 @@ func (ph *PresenceHandler) deliverRosterPresences(userJID *jid.JID) error {
 	}
 	for _, rn := range rns {
 		fromJID, _ := jid.NewWithString(rn.JID, true)
-		p := xml.NewPresence(fromJID, userJID, xml.SubscribeType)
+		p := xmpp.NewPresence(fromJID, userJID, xmpp.SubscribeType)
 		p.AppendElements(rn.Presence.Elements().All())
 		router.Route(p)
 	}
@@ -386,16 +386,16 @@ func (ph *PresenceHandler) deliverRosterPresences(userJID *jid.JID) error {
 		case rostermodel.SubscriptionTo, rostermodel.SubscriptionBoth:
 			contactJID := item.ContactJID()
 			if !host.IsLocalHost(contactJID.Domain()) {
-				router.Route(xml.NewPresence(userJID, contactJID, xml.ProbeType))
+				router.Route(xmpp.NewPresence(userJID, contactJID, xmpp.ProbeType))
 				continue
 			}
-			routePresencesFrom(contactJID, userJID, xml.AvailableType)
+			routePresencesFrom(contactJID, userJID, xmpp.AvailableType)
 		}
 	}
 	return nil
 }
 
-func (ph *PresenceHandler) broadcastPresence(presence *xml.Presence) error {
+func (ph *PresenceHandler) broadcastPresence(presence *xmpp.Presence) error {
 	fromJID := presence.FromJID()
 	itms, _, err := storage.Instance().FetchRosterItems(fromJID.Node())
 	if err != nil {
@@ -404,7 +404,7 @@ func (ph *PresenceHandler) broadcastPresence(presence *xml.Presence) error {
 	for _, itm := range itms {
 		switch itm.Subscription {
 		case rostermodel.SubscriptionFrom, rostermodel.SubscriptionBoth:
-			p := xml.NewPresence(fromJID, itm.ContactJID(), presence.Type())
+			p := xmpp.NewPresence(fromJID, itm.ContactJID(), presence.Type())
 			p.AppendElements(presence.Elements().All())
 			router.Route(p)
 		}

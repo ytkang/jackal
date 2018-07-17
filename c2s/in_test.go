@@ -21,8 +21,8 @@ import (
 	"github.com/ortuman/jackal/stream"
 	"github.com/ortuman/jackal/transport"
 	"github.com/ortuman/jackal/transport/compress"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -165,7 +165,7 @@ func TestStream_FailAuthenticate(t *testing.T) {
 
 	elem = conn.outboundRead()
 	require.Equal(t, "iq", elem.Name())
-	require.Equal(t, xml.ErrorType, elem.Type())
+	require.Equal(t, xmpp.ErrorType, elem.Type())
 	require.NotNil(t, elem.Elements().Child("error"))
 }
 
@@ -275,8 +275,8 @@ func TestStream_SendIQ(t *testing.T) {
 
 	// request roster...
 	iqID := uuid.New()
-	iq := xml.NewIQType(iqID, xml.GetType)
-	iq.AppendElement(xml.NewElementNamespace("query", "jabber:iq:roster"))
+	iq := xmpp.NewIQType(iqID, xmpp.GetType)
+	iq.AppendElement(xmpp.NewElementNamespace("query", "jabber:iq:roster"))
 
 	conn.inboundWrite([]byte(iq.String()))
 
@@ -330,7 +330,7 @@ func TestStream_SendPresence(t *testing.T) {
 	p := stm.Presence()
 	require.NotNil(t, p)
 	require.Equal(t, int8(5), p.Priority())
-	x := xml.NewElementName("x")
+	x := xmpp.NewElementName("x")
 	x.AppendElements(stm.Presence().Elements().All())
 	require.NotNil(t, x.Elements().Child("show"))
 	require.NotNil(t, x.Elements().Child("status"))
@@ -373,10 +373,10 @@ func TestStream_SendMessage(t *testing.T) {
 	router.Bind(stm2)
 
 	msgID := uuid.New()
-	msg := xml.NewMessageType(msgID, xml.ChatType)
+	msg := xmpp.NewMessageType(msgID, xmpp.ChatType)
 	msg.SetFromJID(jFrom)
 	msg.SetToJID(jTo)
-	body := xml.NewElementName("body")
+	body := xmpp.NewElementName("body")
 	body.SetText("Hi buddy!")
 	msg.AppendElement(body)
 
@@ -432,7 +432,7 @@ func TestStream_SendToBlockedJID(t *testing.T) {
 
 	elem := conn.outboundRead()
 	require.Equal(t, "presence", elem.Name())
-	require.Equal(t, xml.ErrorType, elem.Type())
+	require.Equal(t, xmpp.ErrorType, elem.Type())
 	require.NotNil(t, elem.Elements().Child("error"))
 }
 
@@ -479,7 +479,7 @@ func tUtilStreamStartSession(conn *fakeSocketConn, t *testing.T) {
 
 	elem = conn.outboundRead()
 	require.Equal(t, "iq", elem.Name())
-	require.NotNil(t, xml.ResultType, elem.Type())
+	require.NotNil(t, xmpp.ResultType, elem.Type())
 
 	time.Sleep(time.Millisecond * 100) // wait until stream internal state changes
 }

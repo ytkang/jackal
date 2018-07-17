@@ -14,8 +14,8 @@ import (
 	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 )
 
@@ -44,7 +44,7 @@ func (x *BlockingCommand) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the blocking command module.
-func (x *BlockingCommand) MatchesIQ(iq *xml.IQ) bool {
+func (x *BlockingCommand) MatchesIQ(iq *xmpp.IQ) bool {
 	e := iq.Elements()
 	blockList := e.ChildNamespace("blocklist", blockingCommandNamespace)
 	block := e.ChildNamespace("block", blockingCommandNamespace)
@@ -54,7 +54,7 @@ func (x *BlockingCommand) MatchesIQ(iq *xml.IQ) bool {
 
 // ProcessIQ processes a blocking command IQ taking according actions
 // over the associated stream.
-func (x *BlockingCommand) ProcessIQ(iq *xml.IQ) {
+func (x *BlockingCommand) ProcessIQ(iq *xmpp.IQ) {
 	if iq.IsGet() {
 		x.sendBlockList(iq)
 	} else if iq.IsSet() {
@@ -67,16 +67,16 @@ func (x *BlockingCommand) ProcessIQ(iq *xml.IQ) {
 	}
 }
 
-func (x *BlockingCommand) sendBlockList(iq *xml.IQ) {
+func (x *BlockingCommand) sendBlockList(iq *xmpp.IQ) {
 	blItms, err := storage.Instance().FetchBlockListItems(x.stm.Username())
 	if err != nil {
 		log.Error(err)
 		x.stm.SendElement(iq.InternalServerError())
 		return
 	}
-	blockList := xml.NewElementNamespace("blocklist", blockingCommandNamespace)
+	blockList := xmpp.NewElementNamespace("blocklist", blockingCommandNamespace)
 	for _, blItm := range blItms {
-		itElem := xml.NewElementName("item")
+		itElem := xmpp.NewElementName("item")
 		itElem.SetAttribute("jid", blItm.JID)
 		blockList.AppendElement(itElem)
 	}
@@ -87,7 +87,7 @@ func (x *BlockingCommand) sendBlockList(iq *xml.IQ) {
 	x.stm.Context().SetBool(true, xep191RequestedContextKey)
 }
 
-func (x *BlockingCommand) block(iq *xml.IQ, block xml.XElement) {
+func (x *BlockingCommand) block(iq *xmpp.IQ, block xmpp.XElement) {
 	var bl []model.BlockListItem
 
 	items := block.Elements().Children("item")
@@ -109,7 +109,7 @@ func (x *BlockingCommand) block(iq *xml.IQ, block xml.XElement) {
 	}
 	for _, j := range jds {
 		if !x.isJIDInBlockList(j, blItems) {
-			x.broadcastPresenceMatchingJID(j, ris, xml.UnavailableType)
+			x.broadcastPresenceMatchingJID(j, ris, xmpp.UnavailableType)
 			bl = append(bl, model.BlockListItem{Username: x.stm.Username(), JID: j.String()})
 		}
 	}
@@ -124,7 +124,7 @@ func (x *BlockingCommand) block(iq *xml.IQ, block xml.XElement) {
 	x.pushIQ(block)
 }
 
-func (x *BlockingCommand) unblock(iq *xml.IQ, unblock xml.XElement) {
+func (x *BlockingCommand) unblock(iq *xmpp.IQ, unblock xmpp.XElement) {
 	items := unblock.Elements().Children("item")
 	jds, err := x.extractItemJIDs(items)
 	if err != nil {
@@ -143,14 +143,14 @@ func (x *BlockingCommand) unblock(iq *xml.IQ, unblock xml.XElement) {
 	if len(jds) == 0 {
 		for _, blItem := range blItems {
 			j, _ := jid.NewWithString(blItem.JID, true)
-			x.broadcastPresenceMatchingJID(j, ris, xml.AvailableType)
+			x.broadcastPresenceMatchingJID(j, ris, xmpp.AvailableType)
 		}
 		bl = blItems
 
 	} else {
 		for _, j := range jds {
 			if x.isJIDInBlockList(j, blItems) {
-				x.broadcastPresenceMatchingJID(j, ris, xml.AvailableType)
+				x.broadcastPresenceMatchingJID(j, ris, xmpp.AvailableType)
 				bl = append(bl, model.BlockListItem{Username: x.stm.Username(), JID: j.String()})
 			}
 		}
@@ -166,13 +166,13 @@ func (x *BlockingCommand) unblock(iq *xml.IQ, unblock xml.XElement) {
 	x.pushIQ(unblock)
 }
 
-func (x *BlockingCommand) pushIQ(elem xml.XElement) {
+func (x *BlockingCommand) pushIQ(elem xmpp.XElement) {
 	stms := router.UserStreams(x.stm.JID().Node())
 	for _, stm := range stms {
 		if !stm.Context().Bool(xep191RequestedContextKey) {
 			continue
 		}
-		iq := xml.NewIQType(uuid.New(), xml.SetType)
+		iq := xmpp.NewIQType(uuid.New(), xmpp.SetType)
 		iq.AppendElement(elem)
 		stm.SendElement(iq)
 	}
@@ -184,8 +184,8 @@ func (x *BlockingCommand) broadcastPresenceMatchingJID(jid *jid.JID, ris []roste
 		if !x.isSubscribedTo(presence.FromJID().ToBareJID(), ris) {
 			continue
 		}
-		p := xml.NewPresence(presence.FromJID(), x.stm.JID().ToBareJID(), presenceType)
-		if presenceType == xml.AvailableType {
+		p := xmpp.NewPresence(presence.FromJID(), x.stm.JID().ToBareJID(), presenceType)
+		if presenceType == xmpp.AvailableType {
 			p.AppendElements(presence.Elements().All())
 		}
 		router.MustRoute(p)
@@ -223,7 +223,7 @@ func (x *BlockingCommand) fetchBlockListAndRosterItems() ([]model.BlockListItem,
 	return blItms, ris, nil
 }
 
-func (x *BlockingCommand) extractItemJIDs(items []xml.XElement) ([]*jid.JID, error) {
+func (x *BlockingCommand) extractItemJIDs(items []xmpp.XElement) ([]*jid.JID, error) {
 	var ret []*jid.JID
 	for _, item := range items {
 		j, err := jid.NewWithString(item.Attributes().Get("jid"), false)

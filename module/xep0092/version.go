@@ -13,7 +13,7 @@ import (
 	"github.com/ortuman/jackal/module/xep0030"
 	"github.com/ortuman/jackal/stream"
 	"github.com/ortuman/jackal/version"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 const versionNamespace = "jabber:iq:version"
@@ -52,13 +52,13 @@ func (x *Version) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the version module.
-func (x *Version) MatchesIQ(iq *xml.IQ) bool {
+func (x *Version) MatchesIQ(iq *xmpp.IQ) bool {
 	return iq.IsGet() && iq.Elements().ChildNamespace("query", versionNamespace) != nil && iq.ToJID().IsServer()
 }
 
 // ProcessIQ processes a version IQ taking according actions
 // over the associated stream.
-func (x *Version) ProcessIQ(iq *xml.IQ) {
+func (x *Version) ProcessIQ(iq *xmpp.IQ) {
 	q := iq.Elements().ChildNamespace("query", versionNamespace)
 	if q.Elements().Count() != 0 {
 		x.stm.SendElement(iq.BadRequestError())
@@ -67,24 +67,24 @@ func (x *Version) ProcessIQ(iq *xml.IQ) {
 	x.sendSoftwareVersion(iq)
 }
 
-func (x *Version) sendSoftwareVersion(iq *xml.IQ) {
+func (x *Version) sendSoftwareVersion(iq *xmpp.IQ) {
 	username := x.stm.Username()
 	resource := x.stm.Resource()
 	log.Infof("retrieving software version: %v (%s/%s)", version.ApplicationVersion, username, resource)
 
 	result := iq.ResultIQ()
-	query := xml.NewElementNamespace("query", versionNamespace)
+	query := xmpp.NewElementNamespace("query", versionNamespace)
 
-	name := xml.NewElementName("name")
+	name := xmpp.NewElementName("name")
 	name.SetText("jackal")
 	query.AppendElement(name)
 
-	ver := xml.NewElementName("version")
+	ver := xmpp.NewElementName("version")
 	ver.SetText(version.ApplicationVersion.String())
 	query.AppendElement(ver)
 
 	if x.cfg.ShowOS {
-		os := xml.NewElementName("os")
+		os := xmpp.NewElementName("os")
 		os.SetText(osString)
 		query.AppendElement(os)
 	}

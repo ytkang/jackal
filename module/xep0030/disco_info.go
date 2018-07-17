@@ -10,7 +10,7 @@ import (
 	"sync"
 
 	"github.com/ortuman/jackal/stream"
-	"github.com/ortuman/jackal/xml"
+	"github.com/ortuman/jackal/xmpp"
 )
 
 const (
@@ -90,7 +90,7 @@ func (di *DiscoInfo) Entity(jid, node string) *Entity {
 
 // MatchesIQ returns whether or not an IQ should be
 // processed by the disco info module.
-func (di *DiscoInfo) MatchesIQ(iq *xml.IQ) bool {
+func (di *DiscoInfo) MatchesIQ(iq *xmpp.IQ) bool {
 	q := iq.Elements().Child("query")
 	if q == nil {
 		return false
@@ -100,7 +100,7 @@ func (di *DiscoInfo) MatchesIQ(iq *xml.IQ) bool {
 
 // ProcessIQ processes a disco info IQ taking according actions
 // over the associated stream.
-func (di *DiscoInfo) ProcessIQ(iq *xml.IQ) {
+func (di *DiscoInfo) ProcessIQ(iq *xmpp.IQ) {
 	q := iq.Elements().Child("query")
 	ent := di.Entity(iq.ToJID().String(), q.Attributes().Get("node"))
 	if ent == nil {
@@ -115,12 +115,12 @@ func (di *DiscoInfo) ProcessIQ(iq *xml.IQ) {
 	}
 }
 
-func (di *DiscoInfo) sendDiscoInfo(ent *Entity, iq *xml.IQ) {
+func (di *DiscoInfo) sendDiscoInfo(ent *Entity, iq *xmpp.IQ) {
 	result := iq.ResultIQ()
-	query := xml.NewElementNamespace("query", discoInfoNamespace)
+	query := xmpp.NewElementNamespace("query", discoInfoNamespace)
 
 	for _, identity := range ent.Identities() {
-		identityEl := xml.NewElementName("identity")
+		identityEl := xmpp.NewElementName("identity")
 		identityEl.SetAttribute("category", identity.Category)
 		if len(identity.Type) > 0 {
 			identityEl.SetAttribute("type", identity.Type)
@@ -131,7 +131,7 @@ func (di *DiscoInfo) sendDiscoInfo(ent *Entity, iq *xml.IQ) {
 		query.AppendElement(identityEl)
 	}
 	for _, feature := range ent.Features() {
-		featureEl := xml.NewElementName("feature")
+		featureEl := xmpp.NewElementName("feature")
 		featureEl.SetAttribute("var", feature)
 		query.AppendElement(featureEl)
 	}
@@ -139,12 +139,12 @@ func (di *DiscoInfo) sendDiscoInfo(ent *Entity, iq *xml.IQ) {
 	di.stm.SendElement(result)
 }
 
-func (di *DiscoInfo) sendDiscoItems(ent *Entity, iq *xml.IQ) {
+func (di *DiscoInfo) sendDiscoItems(ent *Entity, iq *xmpp.IQ) {
 	result := iq.ResultIQ()
-	query := xml.NewElementNamespace("query", discoItemsNamespace)
+	query := xmpp.NewElementNamespace("query", discoItemsNamespace)
 
 	for _, item := range ent.Items() {
-		itemEl := xml.NewElementName("item")
+		itemEl := xmpp.NewElementName("item")
 		itemEl.SetAttribute("jid", item.Jid)
 		if len(item.Name) > 0 {
 			itemEl.SetAttribute("name", item.Name)

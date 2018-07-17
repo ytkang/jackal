@@ -8,8 +8,8 @@ package stream
 import (
 	"testing"
 
-	"github.com/ortuman/jackal/xml"
-	"github.com/ortuman/jackal/xml/jid"
+	"github.com/ortuman/jackal/xmpp"
+	"github.com/ortuman/jackal/xmpp/jid"
 	"github.com/pborman/uuid"
 	"github.com/stretchr/testify/require"
 )
@@ -34,13 +34,13 @@ func TestMockC2Stream(t *testing.T) {
 	strm.SetJID(j2)
 	require.Equal(t, "romeo@jackal.im/orchard", strm.JID().String())
 
-	presence := xml.NewPresence(j1, j2, xml.AvailableType)
-	presence.AppendElement(xml.NewElementName("status"))
+	presence := xmpp.NewPresence(j1, j2, xmpp.AvailableType)
+	presence.AppendElement(xmpp.NewElementName("status"))
 	strm.SetPresence(presence)
 	presenceElements := strm.Presence().Elements().All()
 	require.Equal(t, 1, len(presenceElements))
 
-	elem := xml.NewElementName("elem1234")
+	elem := xmpp.NewElementName("elem1234")
 	strm.SendElement(elem)
 	fetch := strm.FetchElement()
 	require.NotNil(t, fetch)

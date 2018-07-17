@@ -8,7 +8,7 @@ package component
 import "github.com/ortuman/jackal/xmpp"
 
 type Component interface {
-	Name() string
+	Domain() string
 	ProcessStanza(stanza xmpp.Stanza)
 }
 

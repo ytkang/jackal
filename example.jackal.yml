@@ -24,6 +24,10 @@ hosts:
         privkey_path: ""
         cert_path: ""
 
+components:
+  http_upload:
+    domain: upload.jackal.im
+
 modules:
   enabled:
     - roster           # Roster

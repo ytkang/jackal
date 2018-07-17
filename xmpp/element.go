@@ -51,7 +51,7 @@ func NewErrorElementFromElement(elem XElement, stanzaErr *StanzaError, errorElem
 	return e
 }
 
-// Name returns XML node name.
+// Domain returns XML node name.
 func (e *Element) Name() string {
 	return e.name
 }

@@ -4,3 +4,6 @@
  */
 
 package http_upload
+
+type Config struct {
+}

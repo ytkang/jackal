@@ -24,10 +24,6 @@ hosts:
         privkey_path: ""
         cert_path: ""
 
-components:
-  http_upload:
-    domain: upload.jackal.im
-
 modules:
   enabled:
     - roster           # Roster
@@ -92,3 +88,10 @@ s2s:
     bind_addr: 0.0.0.0
     port: 5269
     keep_alive: 600
+
+components:
+  enabled:
+    - name: upload.jackal.im
+      class: http_upload
+
+  http_upload:

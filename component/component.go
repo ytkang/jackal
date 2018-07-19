@@ -67,6 +67,10 @@ func IsComponentDomain(domain string) bool {
 	return instance().isComponentDomain(domain)
 }
 
+func RegisteredDomains() []string {
+	return instance().registeredDomains()
+}
+
 func Register(comp Component) error {
 	return instance().register(comp)
 }
@@ -84,9 +88,19 @@ func instance() *component {
 	return inst
 }
 
+func (c *component) registeredDomains() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	var ret []string
+	for _, comp := range c.comps {
+		ret = append(ret, comp.Domain())
+	}
+	return ret
+}
+
 func (c *component) isComponentDomain(domain string) bool {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	_, ok := c.comps[domain]
 	return ok
 }

@@ -78,7 +78,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "jackal: %v\n", err)
 		return
 	}
-	if len(cfg.VirtualHosts) == 0 {
+	if len(cfg.C2S) == 0 {
 		fmt.Fprint(os.Stderr, "jackal: at least one virtual host configuration is required\n")
 		return
 	}
@@ -106,10 +106,10 @@ func main() {
 		go initDebugServer(cfg.Debug.Port)
 	}
 	// start serving s2s...
-	s2s.Initialize(&cfg.S2S, &cfg.Modules)
+	s2s.Initialize(cfg.S2S, &cfg.Modules)
 
 	// start serving c2s...
-	c2s.Initialize(cfg.VirtualHosts, &cfg.Modules)
+	c2s.Initialize(cfg.C2S, &cfg.Modules)
 }
 
 var debugSrv *http.Server

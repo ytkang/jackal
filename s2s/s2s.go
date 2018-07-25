@@ -9,6 +9,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/module"
 	"github.com/ortuman/jackal/stream"
 )
@@ -36,7 +37,8 @@ func Initialize(cfg *Config, modConfig *module.Config) {
 	if initialized {
 		return
 	}
-	if !cfg.Enabled {
+	if cfg == nil {
+		log.Infof("s2s disabled")
 		return
 	}
 	defaultDialer = newDialer(cfg)

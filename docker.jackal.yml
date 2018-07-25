@@ -47,8 +47,8 @@ modules:
     send: no
     send_interval: 60
 
-virtual_hosts:
-  - id: default
+c2s:
+  - id: c2s:1
 
     connect_timeout: 5
     max_stanza_size: 32768
@@ -59,7 +59,7 @@ virtual_hosts:
       bind_addr: 0.0.0.0
       port: 5222
       keep_alive: 120
-      url_path: /xmpp/ws
+      # url_path: /xmpp/ws
 
     compression:
       level: default
@@ -70,14 +70,22 @@ virtual_hosts:
       - scram_sha_1
       - scram_sha_256
 
-s2s:
-  disabled: false
+#s2s:
+#    dial_timeout: 15
+#    dialback_secret: s3cr3tf0rd14lb4ck
+#    max_stanza_size: 131072
+#
+#    transport:
+#      bind_addr: 0.0.0.0
+#      port: 5269
+#      keep_alive: 600
 
-  dial_timeout: 15
-  dialback_secret: s3cr3tf0rd14lb4ck
-  max_stanza_size: 131072
-
-  transport:
-    bind_addr: 0.0.0.0
-    port: 5269
-    keep_alive: 600
+components:
+  http_upload:
+    host: upload.jackal.im
+    base_url: https://jackal.im:4430/upload
+    port: 4430
+    # upload_path: /var/lib/jackal/http_upload
+    # size_limit: 1048576
+    # quota: 0
+    # expire_after: 600 # secs.

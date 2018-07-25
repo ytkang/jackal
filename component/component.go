@@ -15,7 +15,7 @@ import (
 )
 
 type Component interface {
-	Domain() string
+	Host() string
 	ProcessStanza(stanza xmpp.Stanza)
 	Shutdown()
 }
@@ -93,7 +93,7 @@ func (c *component) registeredDomains() []string {
 	defer c.mu.RUnlock()
 	var ret []string
 	for _, comp := range c.comps {
-		ret = append(ret, comp.Domain())
+		ret = append(ret, comp.Host())
 	}
 	return ret
 }
@@ -108,19 +108,19 @@ func (c *component) isComponentDomain(domain string) bool {
 func (c *component) register(comp Component) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, ok := c.comps[comp.Domain()]; ok {
-		return fmt.Errorf("component: domain %s already registered", comp.Domain())
+	if _, ok := c.comps[comp.Host()]; ok {
+		return fmt.Errorf("component: domain %s already registered", comp.Host())
 	}
-	c.comps[comp.Domain()] = comp
+	c.comps[comp.Host()] = comp
 	return nil
 }
 
 func (c *component) unregister(comp Component) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, ok := c.comps[comp.Domain()]; !ok {
-		return fmt.Errorf("component: domain %s not registered", comp.Domain())
+	if _, ok := c.comps[comp.Host()]; !ok {
+		return fmt.Errorf("component: domain %s not registered", comp.Host())
 	}
-	delete(c.comps, comp.Domain())
+	delete(c.comps, comp.Host())
 	return nil
 }

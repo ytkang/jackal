@@ -3,7 +3,7 @@
  * See the LICENSE file for more information.
  */
 
-package http_upload
+package httpupload
 
 import (
 	"github.com/ortuman/jackal/xmpp"

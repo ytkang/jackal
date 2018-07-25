@@ -8,8 +8,7 @@ package component
 import (
 	"sync"
 
-	"fmt"
-
+	"github.com/ortuman/jackal/component/httpupload"
 	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/xmpp"
 )
@@ -20,18 +19,10 @@ type Component interface {
 	Shutdown()
 }
 
-type Config struct {
-}
-
-type component struct {
-	mu    sync.RWMutex
-	comps map[string]Component
-}
-
 // singleton interface
 var (
 	instMu      sync.RWMutex
-	inst        *component
+	comps       map[string]Component
 	initialized bool
 )
 
@@ -42,8 +33,12 @@ func Initialize(cfg *Config) {
 	if initialized {
 		return
 	}
-	inst = &component{
-		comps: make(map[string]Component),
+	comps = make(map[string]Component)
+
+	if cfg.HttpUpload != nil {
+		comp := httpupload.New(cfg.HttpUpload)
+		comps[comp.Host()] = comp
+		log.Infof("'http_upload' component enabled [host: %s, port: %d]", comp.Host(), cfg.HttpUpload.Port)
 	}
 	initialized = true
 }
@@ -56,71 +51,9 @@ func Shutdown() {
 	if !initialized {
 		return
 	}
-	for _, comp := range inst.comps {
+	for _, comp := range comps {
 		comp.Shutdown()
 	}
-	inst = nil
+	comps = nil
 	initialized = false
-}
-
-func IsComponentDomain(domain string) bool {
-	return instance().isComponentDomain(domain)
-}
-
-func RegisteredDomains() []string {
-	return instance().registeredDomains()
-}
-
-func Register(comp Component) error {
-	return instance().register(comp)
-}
-
-func Unregister(comp Component) error {
-	return instance().unregister(comp)
-}
-
-func instance() *component {
-	instMu.RLock()
-	defer instMu.RUnlock()
-	if inst == nil {
-		log.Fatalf("component manager not initialized")
-	}
-	return inst
-}
-
-func (c *component) registeredDomains() []string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	var ret []string
-	for _, comp := range c.comps {
-		ret = append(ret, comp.Host())
-	}
-	return ret
-}
-
-func (c *component) isComponentDomain(domain string) bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	_, ok := c.comps[domain]
-	return ok
-}
-
-func (c *component) register(comp Component) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if _, ok := c.comps[comp.Host()]; ok {
-		return fmt.Errorf("component: domain %s already registered", comp.Host())
-	}
-	c.comps[comp.Host()] = comp
-	return nil
-}
-
-func (c *component) unregister(comp Component) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if _, ok := c.comps[comp.Host()]; !ok {
-		return fmt.Errorf("component: domain %s not registered", comp.Host())
-	}
-	delete(c.comps, comp.Host())
-	return nil
 }

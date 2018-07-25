@@ -15,6 +15,7 @@ import (
 	"strconv"
 
 	"github.com/ortuman/jackal/c2s"
+	"github.com/ortuman/jackal/component"
 	"github.com/ortuman/jackal/host"
 	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/router"
@@ -78,10 +79,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "jackal: %v\n", err)
 		return
 	}
-	if len(cfg.C2S) == 0 {
-		fmt.Fprint(os.Stderr, "jackal: at least one virtual host configuration is required\n")
-		return
-	}
 	// initialize subsystems
 	log.Initialize(&cfg.Logger)
 
@@ -102,9 +99,14 @@ func main() {
 	log.Infof("")
 	log.Infof("jackal %v\n", version.ApplicationVersion)
 
+	// initialize debug server...
 	if cfg.Debug.Port > 0 {
 		go initDebugServer(cfg.Debug.Port)
 	}
+
+	// initialize components...
+	component.Initialize(&cfg.Components)
+
 	// start serving s2s...
 	s2s.Initialize(cfg.S2S, &cfg.Modules)
 

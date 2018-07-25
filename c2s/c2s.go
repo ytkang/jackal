@@ -10,6 +10,7 @@ import (
 
 	"github.com/ortuman/jackal/log"
 	"github.com/ortuman/jackal/module"
+	"github.com/pkg/errors"
 )
 
 const streamMailboxSize = 64
@@ -37,6 +38,10 @@ func Initialize(srvConfigurations []Config, modConfig *module.Config) {
 	mu.Lock()
 	if initialized {
 		mu.Unlock()
+		return
+	}
+	if len(srvConfigurations) == 0 {
+		log.Error(errors.New("at least one c2s configuration is required"))
 		return
 	}
 	// initialize all servers

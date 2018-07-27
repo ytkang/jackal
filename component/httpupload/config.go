@@ -25,7 +25,7 @@ type Config struct {
 	ExpireAfter time.Duration
 }
 
-type proxyConfig struct {
+type configProxy struct {
 	Host        string `yaml:"host"`
 	BaseURL     string `yaml:"base_url"`
 	Port        int    `yaml:"port"`
@@ -36,7 +36,7 @@ type proxyConfig struct {
 }
 
 func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	p := proxyConfig{}
+	p := configProxy{}
 	if err := unmarshal(&p); err != nil {
 		return err
 	}

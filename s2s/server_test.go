@@ -24,7 +24,6 @@ func TestS2SSocketServer(t *testing.T) {
 
 	errCh := make(chan error)
 	cfg := Config{
-		Enabled:        true,
 		ConnectTimeout: time.Second * time.Duration(5),
 		MaxStanzaSize:  8192,
 		Transport: TransportConfig{

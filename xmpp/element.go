@@ -43,8 +43,8 @@ func NewElementFromElement(elem XElement) *Element {
 	return e
 }
 
-// NewErrorStanzaFromElement returns a copy of an element of stanza error class.
-func NewErrorStanzaFromElement(elem XElement, stanzaErr *StanzaError, errorElements []XElement) *Element {
+// NewErrorElementFromElement returns a copy of an element of stanza error class.
+func NewErrorElementFromElement(elem XElement, stanzaErr *StanzaError, errorElements []XElement) *Element {
 	e := &Element{}
 	e.copyFrom(elem)
 	e.SetType("error")

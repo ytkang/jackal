@@ -696,7 +696,7 @@ func (s *inStream) processStanza(stanza xmpp.Stanza) {
 	toJID := stanza.ToJID()
 	if s.isBlockedJID(toJID) { // blocked JID?
 		blocked := xmpp.NewElementNamespace("blocked", blockedErrorNamespace)
-		resp := xmpp.NewErrorStanzaFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
+		resp := xmpp.NewErrorElementFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
 		s.writeElement(resp)
 		return
 	}
@@ -830,7 +830,7 @@ func (s *inStream) handleSessionError(sErr *session.Error) {
 	case *streamerror.Error:
 		s.disconnectWithStreamError(err)
 	case *xmpp.StanzaError:
-		s.writeElement(xmpp.NewErrorStanzaFromElement(sErr.Element, err, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(sErr.Element, err, nil))
 	default:
 		log.Error(err)
 		s.disconnectWithStreamError(streamerror.ErrUndefinedCondition)

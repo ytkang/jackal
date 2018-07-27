@@ -18,7 +18,6 @@ import (
 func TestS2SDial(t *testing.T) {
 	// s2s configuration
 	cfg := Config{
-		Enabled:        false,
 		ConnectTimeout: time.Second * time.Duration(5),
 		MaxStanzaSize:  8192,
 		Transport: TransportConfig{
@@ -28,7 +27,7 @@ func TestS2SDial(t *testing.T) {
 	}
 
 	// not enabled
-	Initialize(&cfg, &module.Config{})
+	Initialize(nil, &module.Config{})
 	out, err := GetS2SOut("jackal.im", "jabber.org")
 	require.Nil(t, out)
 	require.NotNil(t, err)
@@ -40,7 +39,6 @@ func TestS2SDial(t *testing.T) {
 	mockedErr := errors.New("dialer mocked error")
 
 	// resolver error...
-	cfg.Enabled = true
 	Initialize(&cfg, &module.Config{})
 	defaultDialer.srvResolve = func(_, _, _ string) (cname string, addrs []*net.SRV, err error) {
 		return "", nil, mockedErr

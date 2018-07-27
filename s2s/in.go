@@ -264,7 +264,7 @@ func (s *inStream) failAuthentication(reason, text string) {
 
 func (s *inStream) authorizeDialbackKey(elem xmpp.XElement) {
 	if !host.IsLocalHost(elem.To()) {
-		s.writeElement(xmpp.NewErrorStanzaFromElement(elem, xmpp.ErrItemNotFound, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(elem, xmpp.ErrItemNotFound, nil))
 		return
 	}
 	log.Infof("authorizing dialback key: %s...", elem.Text())
@@ -272,7 +272,7 @@ func (s *inStream) authorizeDialbackKey(elem xmpp.XElement) {
 	outCfg, err := s.cfg.dialer.dial(elem.To(), elem.From())
 	if err != nil {
 		log.Error(err)
-		s.writeElement(xmpp.NewErrorStanzaFromElement(elem, xmpp.ErrRemoteServerNotFound, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(elem, xmpp.ErrRemoteServerNotFound, nil))
 		return
 	}
 	// create verify element
@@ -304,14 +304,14 @@ func (s *inStream) authorizeDialbackKey(elem xmpp.XElement) {
 
 	case <-outStm.done():
 		// remote server closed connection unexpectedly
-		s.writeElement(xmpp.NewErrorStanzaFromElement(elem, xmpp.ErrRemoteServerTimeout, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(elem, xmpp.ErrRemoteServerTimeout, nil))
 		break
 	}
 }
 
 func (s *inStream) verifyDialbackKey(elem xmpp.XElement) {
 	if !host.IsLocalHost(elem.To()) {
-		s.writeElement(xmpp.NewErrorStanzaFromElement(elem, xmpp.ErrItemNotFound, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(elem, xmpp.ErrItemNotFound, nil))
 		return
 	}
 	dbVerify := xmpp.NewElementName("db:verify")
@@ -350,7 +350,7 @@ func (s *inStream) handleSessionError(sErr *session.Error) {
 	case *streamerror.Error:
 		s.disconnectWithStreamError(err)
 	case *xmpp.StanzaError:
-		s.writeElement(xmpp.NewErrorStanzaFromElement(sErr.Element, err, nil))
+		s.writeElement(xmpp.NewErrorElementFromElement(sErr.Element, err, nil))
 	default:
 		log.Error(err)
 		s.disconnectWithStreamError(streamerror.ErrUndefinedCondition)

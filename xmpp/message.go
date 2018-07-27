@@ -94,7 +94,7 @@ func (m *Message) ToJID() *jid.JID {
 // SetToJID sets the message 'to' JID value.
 func (m *Message) SetToJID(to *jid.JID) {
 	m.to = to
-	m.SetAttribute("to", to.String())
+	m.SetTo(to.String())
 }
 
 // FromJID returns message 'from' JID value.
@@ -105,7 +105,7 @@ func (m *Message) FromJID() *jid.JID {
 // SetFromJID sets the message 'from' JID value.
 func (m *Message) SetFromJID(from *jid.JID) {
 	m.from = from
-	m.SetAttribute("from", from.String())
+	m.SetFrom(from.String())
 }
 
 func isMessageType(messageType string) bool {

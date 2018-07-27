@@ -37,9 +37,10 @@ type XElement interface {
 	To() string
 	Type() string
 
+	ToStanza(fromJID *jid.JID, toJID *jid.JID) (Stanza, error)
 	IsStanza() bool
-	IsError() bool
 
+	IsError() bool
 	Error() XElement
 
 	ToXML(w io.Writer, includeClosing bool)

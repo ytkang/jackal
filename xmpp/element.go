@@ -8,7 +8,12 @@ package xmpp
 import (
 	"encoding/gob"
 	"io"
+
+	"github.com/ortuman/jackal/xmpp/jid"
+	"github.com/pkg/errors"
 )
+
+var ErrInvalidStanzaName = errors.New("xmpp: invalid stanza name")
 
 // Element represents a generic and mutable XML node element.
 type Element struct {
@@ -38,8 +43,8 @@ func NewElementFromElement(elem XElement) *Element {
 	return e
 }
 
-// NewErrorElementFromElement returns a copy of an element of stanza error class.
-func NewErrorElementFromElement(elem XElement, stanzaErr *StanzaError, errorElements []XElement) *Element {
+// NewErrorStanzaFromElement returns a copy of an element of stanza error class.
+func NewErrorStanzaFromElement(elem XElement, stanzaErr *StanzaError, errorElements []XElement) *Element {
 	e := &Element{}
 	e.copyFrom(elem)
 	e.SetType("error")
@@ -119,6 +124,32 @@ func (e *Element) IsStanza() bool {
 		return true
 	}
 	return false
+}
+
+func (e *Element) ToStanza(fromJID *jid.JID, toJID *jid.JID) (Stanza, error) {
+	switch e.Name() {
+	case "iq":
+		iq, err := NewIQFromElement(e, fromJID, toJID)
+		if err != nil {
+			return nil, err
+		}
+		return iq, nil
+
+	case "presence":
+		presence, err := NewPresenceFromElement(e, fromJID, toJID)
+		if err != nil {
+			return nil, err
+		}
+		return presence, nil
+
+	case "message":
+		message, err := NewMessageFromElement(e, fromJID, toJID)
+		if err != nil {
+			return nil, err
+		}
+		return message, nil
+	}
+	return nil, ErrInvalidStanzaName
 }
 
 // IsError returns true if element has a 'type' attribute of value 'error'.

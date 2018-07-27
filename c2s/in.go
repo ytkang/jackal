@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/ortuman/jackal/auth"
+	"github.com/ortuman/jackal/component"
 	"github.com/ortuman/jackal/errors"
 	"github.com/ortuman/jackal/host"
 	"github.com/ortuman/jackal/log"
@@ -481,8 +482,8 @@ func (s *inStream) handleSessionStarted(elem xmpp.XElement) {
 		s.disconnectWithStreamError(streamerror.ErrUnsupportedStanzaType)
 		return
 	}
-	if s.isComponentDomain(stanza.ToJID().Domain()) {
-		s.processComponentStanza(stanza)
+	if comp := component.Get(stanza.ToJID().Domain()); comp != nil { // component stanza?
+		comp.ProcessStanza(stanza)
 	} else {
 		s.processStanza(stanza)
 	}
@@ -671,11 +672,20 @@ func (s *inStream) startSession(iq *xmpp.IQ) {
 	}
 	s.writeElement(iq.ResultIQ())
 
-	// register disco info elements
+	// register disco info entities and features
 	s.mods.discoInfo.RegisterDefaultEntities()
+	srv := s.mods.discoInfo.Entity(s.Domain(), "")
+	for _, comp := range component.GetAll() {
+		srv.AddItem(xep0030.Item{
+			Jid:  comp.Host(),
+			Name: comp.ServiceName(),
+		})
+	}
 	for _, mod := range s.mods.all {
 		mod.RegisterDisco(s.mods.discoInfo)
 	}
+
+	// start pinging...
 	if p := s.mods.ping; p != nil {
 		p.StartPinging()
 	}
@@ -686,7 +696,7 @@ func (s *inStream) processStanza(stanza xmpp.Stanza) {
 	toJID := stanza.ToJID()
 	if s.isBlockedJID(toJID) { // blocked JID?
 		blocked := xmpp.NewElementNamespace("blocked", blockedErrorNamespace)
-		resp := xmpp.NewErrorElementFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
+		resp := xmpp.NewErrorStanzaFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
 		s.writeElement(resp)
 		return
 	}
@@ -698,9 +708,6 @@ func (s *inStream) processStanza(stanza xmpp.Stanza) {
 	case *xmpp.Message:
 		s.processMessage(stanza)
 	}
-}
-
-func (s *inStream) processComponentStanza(stanza xmpp.Stanza) {
 }
 
 func (s *inStream) processIQ(iq *xmpp.IQ) {
@@ -823,7 +830,7 @@ func (s *inStream) handleSessionError(sErr *session.Error) {
 	case *streamerror.Error:
 		s.disconnectWithStreamError(err)
 	case *xmpp.StanzaError:
-		s.writeElement(xmpp.NewErrorElementFromElement(sErr.Element, err, nil))
+		s.writeElement(xmpp.NewErrorStanzaFromElement(sErr.Element, err, nil))
 	default:
 		log.Error(err)
 		s.disconnectWithStreamError(streamerror.ErrUndefinedCondition)
@@ -858,10 +865,6 @@ func (s *inStream) disconnect(err error) {
 			s.disconnectClosingSession(false, true)
 		}
 	}
-}
-
-func (s *inStream) isComponentDomain(domain string) bool {
-	return false
 }
 
 func (s *inStream) disconnectWithStreamError(err *streamerror.Error) {

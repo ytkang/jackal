@@ -65,7 +65,7 @@ components:
     # expire_after: 600 # secs.
 
 c2s:
-  - id: c2s:1
+  - id: default
 
     connect_timeout: 5
     max_stanza_size: 32768
@@ -96,4 +96,3 @@ c2s:
 #      bind_addr: 0.0.0.0
 #      port: 5269
 #      keep_alive: 600
-

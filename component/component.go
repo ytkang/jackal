@@ -6,6 +6,7 @@
 package component
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ortuman/jackal/component/httpupload"
@@ -15,6 +16,7 @@ import (
 
 type Component interface {
 	Host() string
+	ServiceName() string
 	ProcessStanza(stanza xmpp.Stanza)
 	Shutdown()
 }
@@ -35,10 +37,13 @@ func Initialize(cfg *Config) {
 	}
 	comps = make(map[string]Component)
 
-	if cfg.HttpUpload != nil {
-		comp := httpupload.New(cfg.HttpUpload)
-		comps[comp.Host()] = comp
-		log.Infof("'http_upload' component enabled [host: %s, port: %d]", comp.Host(), cfg.HttpUpload.Port)
+	cs := loadComponents(cfg)
+	for _, c := range cs {
+		host := c.Host()
+		if _, ok := comps[host]; ok {
+			log.Fatalf("%v", fmt.Errorf("component host name conflict: %s", host))
+		}
+		comps[host] = c
 	}
 	initialized = true
 }
@@ -56,4 +61,34 @@ func Shutdown() {
 	}
 	comps = nil
 	initialized = false
+}
+
+func Get(host string) Component {
+	instMu.Lock()
+	defer instMu.Unlock()
+	if !initialized {
+		return nil
+	}
+	return comps[host]
+}
+
+func GetAll() []Component {
+	instMu.Lock()
+	defer instMu.Unlock()
+	if !initialized {
+		return nil
+	}
+	var ret []Component
+	for _, comp := range comps {
+		ret = append(ret, comp)
+	}
+	return ret
+}
+
+func loadComponents(cfg *Config) []Component {
+	var ret []Component
+	if cfg.HttpUpload != nil {
+		ret = append(ret, httpupload.New(cfg.HttpUpload))
+	}
+	return ret
 }

@@ -170,131 +170,131 @@ var (
 // BadRequestError returns an error copy of the element
 // attaching 'bad-request' error sub element.
 func (el *Element) BadRequestError() XElement {
-	return NewErrorElementFromElement(el, ErrBadRequest, nil)
+	return NewErrorStanzaFromElement(el, ErrBadRequest, nil)
 }
 
 // ConflictError returns an error copy of the element
 // attaching 'conflict' error sub element.
 func (el *Element) ConflictError() XElement {
-	return NewErrorElementFromElement(el, ErrConflict, nil)
+	return NewErrorStanzaFromElement(el, ErrConflict, nil)
 }
 
 // FeatureNotImplementedError returns an error copy of the element
 // attaching 'feature-not-implemented' error sub element.
 func (el *Element) FeatureNotImplementedError() XElement {
-	return NewErrorElementFromElement(el, ErrFeatureNotImplemented, nil)
+	return NewErrorStanzaFromElement(el, ErrFeatureNotImplemented, nil)
 }
 
 // ForbiddenError returns an error copy of the element
 // attaching 'forbidden' error sub element.
 func (el *Element) ForbiddenError() XElement {
-	return NewErrorElementFromElement(el, ErrForbidden, nil)
+	return NewErrorStanzaFromElement(el, ErrForbidden, nil)
 }
 
 // GoneError returns an error copy of the element
 // attaching 'gone' error sub element.
 func (el *Element) GoneError() XElement {
-	return NewErrorElementFromElement(el, ErrGone, nil)
+	return NewErrorStanzaFromElement(el, ErrGone, nil)
 }
 
 // InternalServerError returns an error copy of the element
 // attaching 'internal-server-error' error sub element.
 func (el *Element) InternalServerError() XElement {
-	return NewErrorElementFromElement(el, ErrInternalServerError, nil)
+	return NewErrorStanzaFromElement(el, ErrInternalServerError, nil)
 }
 
 // ItemNotFoundError returns an error copy of the element
 // attaching 'item-not-found' error sub element.
 func (el *Element) ItemNotFoundError() XElement {
-	return NewErrorElementFromElement(el, ErrItemNotFound, nil)
+	return NewErrorStanzaFromElement(el, ErrItemNotFound, nil)
 }
 
 // JidMalformedError returns an error copy of the element
 // attaching 'jid-malformed' error sub element.
 func (el *Element) JidMalformedError() XElement {
-	return NewErrorElementFromElement(el, ErrJidMalformed, nil)
+	return NewErrorStanzaFromElement(el, ErrJidMalformed, nil)
 }
 
 // NotAcceptableError returns an error copy of the element
 // attaching 'not-acceptable' error sub element.
 func (el *Element) NotAcceptableError() XElement {
-	return NewErrorElementFromElement(el, ErrNotAcceptable, nil)
+	return NewErrorStanzaFromElement(el, ErrNotAcceptable, nil)
 }
 
 // NotAllowedError returns an error copy of the element
 // attaching 'not-allowed' error sub element.
 func (el *Element) NotAllowedError() XElement {
-	return NewErrorElementFromElement(el, ErrNotAllowed, nil)
+	return NewErrorStanzaFromElement(el, ErrNotAllowed, nil)
 }
 
 // NotAuthorizedError returns an error copy of the element
 // attaching 'not-authorized' error sub element.
 func (el *Element) NotAuthorizedError() XElement {
-	return NewErrorElementFromElement(el, ErrNotAuthorized, nil)
+	return NewErrorStanzaFromElement(el, ErrNotAuthorized, nil)
 }
 
 // PaymentRequiredError returns an error copy of the element
 // attaching 'payment-required' error sub element.
 func (el *Element) PaymentRequiredError() XElement {
-	return NewErrorElementFromElement(el, ErrPaymentRequired, nil)
+	return NewErrorStanzaFromElement(el, ErrPaymentRequired, nil)
 }
 
 // RecipientUnavailableError returns an error copy of the element
 // attaching 'recipient-unavailable' error sub element.
 func (el *Element) RecipientUnavailableError() XElement {
-	return NewErrorElementFromElement(el, ErrRecipientUnavailable, nil)
+	return NewErrorStanzaFromElement(el, ErrRecipientUnavailable, nil)
 }
 
 // RedirectError returns an error copy of the element
 // attaching 'redirect' error sub element.
 func (el *Element) RedirectError() XElement {
-	return NewErrorElementFromElement(el, ErrRedirect, nil)
+	return NewErrorStanzaFromElement(el, ErrRedirect, nil)
 }
 
 // RegistrationRequiredError returns an error copy of the element
 // attaching 'registration-required' error sub element.
 func (el *Element) RegistrationRequiredError() XElement {
-	return NewErrorElementFromElement(el, ErrRegistrationRequired, nil)
+	return NewErrorStanzaFromElement(el, ErrRegistrationRequired, nil)
 }
 
 // RemoteServerNotFoundError returns an error copy of the element
 // attaching 'remote-server-not-found' error sub element.
 func (el *Element) RemoteServerNotFoundError() XElement {
-	return NewErrorElementFromElement(el, ErrRemoteServerNotFound, nil)
+	return NewErrorStanzaFromElement(el, ErrRemoteServerNotFound, nil)
 }
 
 // RemoteServerTimeoutError returns an error copy of the element
 // attaching 'remote-server-timeout' error sub element.
 func (el *Element) RemoteServerTimeoutError() XElement {
-	return NewErrorElementFromElement(el, ErrRemoteServerTimeout, nil)
+	return NewErrorStanzaFromElement(el, ErrRemoteServerTimeout, nil)
 }
 
 // ResourceConstraintError returns an error copy of the element
 // attaching 'resource-constraint' error sub element.
 func (el *Element) ResourceConstraintError() XElement {
-	return NewErrorElementFromElement(el, ErrResourceConstraint, nil)
+	return NewErrorStanzaFromElement(el, ErrResourceConstraint, nil)
 }
 
 // ServiceUnavailableError returns an error copy of the element
 // attaching 'service-unavailable' error sub element.
 func (el *Element) ServiceUnavailableError() XElement {
-	return NewErrorElementFromElement(el, ErrServiceUnavailable, nil)
+	return NewErrorStanzaFromElement(el, ErrServiceUnavailable, nil)
 }
 
 // SubscriptionRequiredError returns an error copy of the element
 // attaching 'subscription-required' error sub element.
 func (el *Element) SubscriptionRequiredError() XElement {
-	return NewErrorElementFromElement(el, ErrSubscriptionRequired, nil)
+	return NewErrorStanzaFromElement(el, ErrSubscriptionRequired, nil)
 }
 
 // UndefinedConditionError returns an error copy of the element
 // attaching 'undefined-condition' error sub element.
 func (el *Element) UndefinedConditionError() XElement {
-	return NewErrorElementFromElement(el, ErrUndefinedCondition, nil)
+	return NewErrorStanzaFromElement(el, ErrUndefinedCondition, nil)
 }
 
 // UnexpectedConditionError returns an error copy of the element
 // attaching 'unexpected-condition' error sub element.
 func (el *Element) UnexpectedConditionError() XElement {
-	return NewErrorElementFromElement(el, ErrUnexpectedCondition, nil)
+	return NewErrorStanzaFromElement(el, ErrUnexpectedCondition, nil)
 }

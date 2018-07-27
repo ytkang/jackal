@@ -307,7 +307,7 @@ func (s *outStream) handleSessionError(sErr *session.Error) {
 	case *streamerror.Error:
 		s.disconnectWithStreamError(err)
 	case *xmpp.StanzaError:
-		s.writeElement(xmpp.NewErrorElementFromElement(sErr.Element, err, nil))
+		s.writeElement(xmpp.NewErrorStanzaFromElement(sErr.Element, err, nil))
 	default:
 		log.Error(err)
 		s.disconnectWithStreamError(streamerror.ErrUndefinedCondition)

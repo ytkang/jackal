@@ -36,33 +36,6 @@ func New(stm stream.C2S) *DiscoInfo {
 // RegisterDisco registers disco entity features/items
 // associated to disco info module.
 func (di *DiscoInfo) RegisterDisco(discoInfo *DiscoInfo) {
-	discoInfo.Entity(di.stm.Domain(), "").AddFeature(discoInfoNamespace)
-	discoInfo.Entity(di.stm.JID().ToBareJID().String(), "").AddFeature(discoItemsNamespace)
-}
-
-// RegisterDefaultEntities register and sets identities for the default
-// domain and account disco entities.
-func (di *DiscoInfo) RegisterDefaultEntities() error {
-	bareJID := di.stm.JID().ToBareJID()
-	srv, err := di.RegisterEntity(di.stm.Domain(), "")
-	if err != nil {
-		return err
-	}
-	acc, err := di.RegisterEntity(bareJID.String(), "")
-	if err != nil {
-		return err
-	}
-	srv.AddIdentity(Identity{
-		Type:     "im",
-		Category: "server",
-		Name:     "jackal",
-	})
-	acc.AddIdentity(Identity{
-		Type:     "registered",
-		Category: "account",
-	})
-	srv.AddItem(Item{Jid: bareJID.String()})
-	return nil
 }
 
 // RegisterEntity registers a new disco entity associated to a jid
@@ -75,6 +48,8 @@ func (di *DiscoInfo) RegisterEntity(jid, node string) (*Entity, error) {
 		return nil, fmt.Errorf("entity already registered: %s", k)
 	}
 	ent := &Entity{}
+	ent.AddFeature(discoInfoNamespace)
+	ent.AddFeature(discoItemsNamespace)
 	di.entities[k] = ent
 	return ent, nil
 }

@@ -81,9 +81,6 @@ func TestXEP0030_SetFeatures(t *testing.T) {
 		discoItemsNamespace,
 	}
 	ent := x.Entity("jackal.im", "")
-	ent.AddFeature(fs[0])
-	ent.AddFeature(fs[1])
-
 	require.Equal(t, fs, ent.Features())
 }
 
@@ -119,8 +116,6 @@ func TestXEP0030_GetFeatures(t *testing.T) {
 		Type:     "im",
 		Name:     "default",
 	})
-	ent.AddFeature("c")
-	ent.AddFeature("a")
 
 	iq1 := xmpp.NewIQType(uuid.New(), xmpp.GetType)
 	iq1.SetFromJID(j)

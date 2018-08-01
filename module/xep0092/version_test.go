@@ -8,6 +8,9 @@ package xep0092
 import (
 	"testing"
 
+	"github.com/ortuman/jackal/host"
+	"github.com/ortuman/jackal/router"
+	"github.com/ortuman/jackal/storage"
 	"github.com/ortuman/jackal/stream"
 	"github.com/ortuman/jackal/version"
 	"github.com/ortuman/jackal/xmpp"
@@ -17,19 +20,27 @@ import (
 )
 
 func TestXEP0092(t *testing.T) {
+	host.Initialize([]host.Config{{Name: "jackal.im"}})
+	router.Initialize(&router.Config{})
+	storage.Initialize(&storage.Config{Type: storage.Memory})
+	defer func() {
+		storage.Shutdown()
+		router.Shutdown()
+		host.Shutdown()
+	}()
 	srvJID, _ := jid.New("", "jackal.im", "", true)
 	j, _ := jid.New("ortuman", "jackal.im", "balcony", true)
 
 	stm := stream.NewMockC2S("abcd", j)
-	defer stm.Disconnect(nil)
+	router.Bind(stm)
 
 	cfg := Config{}
-	x := New(&cfg, stm)
+	x := New(&cfg, nil)
 
 	// test MatchesIQ
 	iq := xmpp.NewIQType(uuid.New(), xmpp.GetType)
-	iq.SetFromJID(j)
-	iq.SetToJID(j)
+	iq.SetFrom(j.String())
+	iq.SetTo(j.String())
 
 	qVer := xmpp.NewElementNamespace("query", versionNamespace)
 
@@ -38,7 +49,7 @@ func TestXEP0092(t *testing.T) {
 	iq.ClearElements()
 	iq.AppendElement(qVer)
 	require.False(t, x.MatchesIQ(iq))
-	iq.SetToJID(srvJID)
+	iq.SetTo(srvJID.String())
 	require.True(t, x.MatchesIQ(iq))
 
 	qVer.AppendElement(xmpp.NewElementName("version"))
@@ -58,7 +69,7 @@ func TestXEP0092(t *testing.T) {
 	// show OS
 	cfg.ShowOS = true
 
-	x = New(&cfg, stm)
+	x = New(&cfg, nil)
 	x.ProcessIQ(iq)
 	elem = stm.FetchElement()
 	ver = elem.Elements().ChildNamespace("query", versionNamespace)

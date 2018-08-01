@@ -30,8 +30,6 @@ const (
 // stream will automatically be converted to Message objects.
 type Message struct {
 	Element
-	to   *jid.JID
-	from *jid.JID
 }
 
 // NewMessageFromElement creates a Message object from XElement.
@@ -45,8 +43,8 @@ func NewMessageFromElement(e XElement, from *jid.JID, to *jid.JID) (*Message, er
 	}
 	m := &Message{}
 	m.copyFrom(e)
-	m.SetToJID(to)
-	m.SetFromJID(from)
+	m.SetTo(to.String())
+	m.SetFrom(from.String())
 	m.SetNamespace("")
 	return m, nil
 }
@@ -84,28 +82,6 @@ func (m *Message) IsGroupChat() bool {
 // has a body sub element.
 func (m *Message) IsMessageWithBody() bool {
 	return m.elements.Child("body") != nil
-}
-
-// ToJID returns message 'to' JID value.
-func (m *Message) ToJID() *jid.JID {
-	return m.to
-}
-
-// SetToJID sets the message 'to' JID value.
-func (m *Message) SetToJID(to *jid.JID) {
-	m.to = to
-	m.SetTo(to.String())
-}
-
-// FromJID returns message 'from' JID value.
-func (m *Message) FromJID() *jid.JID {
-	return m.from
-}
-
-// SetFromJID sets the message 'from' JID value.
-func (m *Message) SetFromJID(from *jid.JID) {
-	m.from = from
-	m.SetFrom(from.String())
 }
 
 func isMessageType(messageType string) bool {

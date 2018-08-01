@@ -6,15 +6,18 @@
 package module
 
 import (
-	"github.com/ortuman/jackal/module/xep0030"
+	"sync"
+
 	"github.com/ortuman/jackal/xmpp"
 )
 
 // Module represents a generic XMPP module.
 type Module interface {
-	// RegisterDisco registers disco entity features and items
-	// associated to the module.
-	RegisterDisco(discoInfo *xep0030.DiscoInfo)
+	// Features returns disco entity features associated to the module.
+	Features() []string
+
+	// Shutdown closes module.
+	Shutdown()
 }
 
 // IQHandler represents an IQ handler module.
@@ -28,4 +31,28 @@ type IQHandler interface {
 	// ProcessIQ processes a module IQ taking according actions
 	// over the associated stream.
 	ProcessIQ(iq *xmpp.IQ)
+}
+
+type Modules struct {
+}
+
+var (
+	my          sync.RWMutex
+	mods        Modules
+	iqHandlers  []IQHandler
+	initialized bool
+)
+
+func Initialize(cfg *Config) {
+}
+
+func Shutdown() {
+}
+
+func All() Modules {
+	return mods
+}
+
+func IQHandlers() []IQHandler {
+	return iqHandlers
 }

@@ -107,9 +107,19 @@ func (e *Element) From() string {
 	return e.attrs.Get("from")
 }
 
+func (e *Element) FromJID() *jid.JID {
+	j, _ := jid.NewWithString(e.From(), true)
+	return j
+}
+
 // To returns 'to' node attribute.
 func (e *Element) To() string {
 	return e.attrs.Get("to")
+}
+
+func (e *Element) ToJID() *jid.JID {
+	j, _ := jid.NewWithString(e.To(), true)
+	return j
 }
 
 // Type returns 'type' node attribute.
@@ -124,32 +134,6 @@ func (e *Element) IsStanza() bool {
 		return true
 	}
 	return false
-}
-
-func (e *Element) ToStanza(fromJID *jid.JID, toJID *jid.JID) (Stanza, error) {
-	switch e.Name() {
-	case "iq":
-		iq, err := NewIQFromElement(e, fromJID, toJID)
-		if err != nil {
-			return nil, err
-		}
-		return iq, nil
-
-	case "presence":
-		presence, err := NewPresenceFromElement(e, fromJID, toJID)
-		if err != nil {
-			return nil, err
-		}
-		return presence, nil
-
-	case "message":
-		message, err := NewMessageFromElement(e, fromJID, toJID)
-		if err != nil {
-			return nil, err
-		}
-		return message, nil
-	}
-	return nil, ErrInvalidStanzaName
 }
 
 // IsError returns true if element has a 'type' attribute of value 'error'.

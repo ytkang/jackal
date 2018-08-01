@@ -61,8 +61,6 @@ const (
 // stream will automatically be converted to Presence objects.
 type Presence struct {
 	Element
-	to        *jid.JID
-	from      *jid.JID
 	showState ShowState
 	priority  int8
 }
@@ -91,15 +89,15 @@ func NewPresenceFromElement(e XElement, from *jid.JID, to *jid.JID) (*Presence, 
 	if err := p.setPriority(); err != nil {
 		return nil, err
 	}
-	p.SetToJID(to)
-	p.SetFromJID(from)
+	p.SetTo(to.String())
+	p.SetFrom(from.String())
 	p.SetNamespace("")
 	return p, nil
 }
 
 // NewPresence creates and returns a new Presence element.
 func NewPresence(from *jid.JID, to *jid.JID, presenceType string) *Presence {
-	p := &Presence{to: to, from: from}
+	p := &Presence{}
 	p.SetName("presence")
 	p.SetFrom(from.String())
 	p.SetTo(to.String())
@@ -158,28 +156,6 @@ func (p *Presence) ShowState() ShowState {
 // Priority returns presence stanza priority value.
 func (p *Presence) Priority() int8 {
 	return p.priority
-}
-
-// ToJID returns presence 'to' JID value.
-func (p *Presence) ToJID() *jid.JID {
-	return p.to
-}
-
-// SetToJID sets the presence 'to' JID value.
-func (p *Presence) SetToJID(to *jid.JID) {
-	p.to = to
-	p.SetAttribute("to", to.String())
-}
-
-// FromJID returns presence 'from' JID value.
-func (p *Presence) FromJID() *jid.JID {
-	return p.from
-}
-
-// SetFromJID sets the presence 'from' JID value.
-func (p *Presence) SetFromJID(from *jid.JID) {
-	p.from = from
-	p.SetAttribute("from", from.String())
 }
 
 func isPresenceType(presenceType string) bool {

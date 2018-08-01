@@ -10,11 +10,12 @@ import (
 	"strings"
 
 	"github.com/ortuman/jackal/log"
-	"github.com/ortuman/jackal/module/xep0030"
-	"github.com/ortuman/jackal/stream"
+	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/version"
 	"github.com/ortuman/jackal/xmpp"
 )
+
+const mailboxSize = 4096
 
 const versionNamespace = "jabber:iq:version"
 
@@ -32,22 +33,26 @@ type Config struct {
 
 // Version represents a version server stream module.
 type Version struct {
-	cfg *Config
-	stm stream.C2S
+	cfg        *Config
+	actorCh    chan func()
+	shutdownCh <-chan struct{}
 }
 
 // New returns a version IQ handler module.
-func New(config *Config, stm stream.C2S) *Version {
-	return &Version{
-		cfg: config,
-		stm: stm,
+func New(config *Config, shutdownCh <-chan struct{}) *Version {
+	v := &Version{
+		cfg:        config,
+		actorCh:    make(chan func(), mailboxSize),
+		shutdownCh: shutdownCh,
 	}
+	go v.loop()
+	return v
 }
 
-// RegisterDisco registers disco entity features/items
+// Features returns disco entity features
 // associated to version module.
-func (x *Version) RegisterDisco(discoInfo *xep0030.DiscoInfo) {
-	discoInfo.Entity(x.stm.Domain(), "").AddFeature(versionNamespace)
+func (x *Version) Features() []string {
+	return []string{versionNamespace}
 }
 
 // MatchesIQ returns whether or not an IQ should be
@@ -59,17 +64,32 @@ func (x *Version) MatchesIQ(iq *xmpp.IQ) bool {
 // ProcessIQ processes a version IQ taking according actions
 // over the associated stream.
 func (x *Version) ProcessIQ(iq *xmpp.IQ) {
+	x.actorCh <- func() { x.processIQ(iq) }
+}
+
+func (x *Version) loop() {
+	for {
+		select {
+		case f := <-x.actorCh:
+			f()
+		case <-x.shutdownCh:
+			return
+		}
+	}
+}
+
+func (x *Version) processIQ(iq *xmpp.IQ) {
 	q := iq.Elements().ChildNamespace("query", versionNamespace)
 	if q.Elements().Count() != 0 {
-		x.stm.SendElement(iq.BadRequestError())
+		router.Route(iq.BadRequestError())
 		return
 	}
 	x.sendSoftwareVersion(iq)
 }
 
 func (x *Version) sendSoftwareVersion(iq *xmpp.IQ) {
-	username := x.stm.Username()
-	resource := x.stm.Resource()
+	username := iq.FromJID().Node()
+	resource := iq.FromJID().Resource()
 	log.Infof("retrieving software version: %v (%s/%s)", version.ApplicationVersion, username, resource)
 
 	result := iq.ResultIQ()
@@ -89,5 +109,5 @@ func (x *Version) sendSoftwareVersion(iq *xmpp.IQ) {
 		query.AppendElement(os)
 	}
 	result.AppendElement(query)
-	x.stm.SendElement(result)
+	router.Route(result)
 }

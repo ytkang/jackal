@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/ortuman/jackal/xmpp"
-	"github.com/ortuman/jackal/xmpp/jid"
 )
 
 // User represents a user storage entity.
@@ -30,10 +29,6 @@ func (u *User) FromGob(dec *gob.Decoder) {
 	if hasPresence {
 		p := &xmpp.Presence{}
 		p.FromGob(dec)
-		fromJID, _ := jid.NewWithString(p.From(), true)
-		toJID, _ := jid.NewWithString(p.To(), true)
-		p.SetFromJID(fromJID)
-		p.SetToJID(toJID)
 		u.LastPresence = p
 		dec.Decode(&u.LastPresenceAt)
 	}

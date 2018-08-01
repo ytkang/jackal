@@ -37,7 +37,7 @@ func (c *HttpUpload) ServiceName() string {
 	return httpUploadServiceName
 }
 
-func (c *HttpUpload) ProcessStanza(stanza xmpp.Stanza) {
+func (c *HttpUpload) ProcessStanza(stanza xmpp.XElement) {
 	c.actorCh <- func() {
 		c.processStanza(stanza)
 	}
@@ -57,6 +57,5 @@ func (c *HttpUpload) loop() {
 	}
 }
 
-func (c *HttpUpload) processStanza(stanza xmpp.Stanza) {
-
+func (c *HttpUpload) processStanza(stanza xmpp.XElement) {
 }

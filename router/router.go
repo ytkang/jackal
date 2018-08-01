@@ -119,13 +119,13 @@ func ReloadBlockList(username string) {
 
 // Route routes a stanza applying server rules for handling XML stanzas.
 // (https://xmpp.org/rfcs/rfc3921.html#rules)
-func Route(elem xmpp.Stanza) error {
+func Route(elem xmpp.XElement) error {
 	return instance().route(elem, false)
 }
 
 // MustRoute routes a stanza applying server rules for handling XML stanzas
 // ignoring blocking lists.
-func MustRoute(elem xmpp.Stanza) error {
+func MustRoute(elem xmpp.XElement) error {
 	return instance().route(elem, true)
 }
 
@@ -236,15 +236,15 @@ func (r *router) getBlockList(username string) []*jid.JID {
 	return bl
 }
 
-func (r *router) route(stanza xmpp.Stanza, ignoreBlocking bool) error {
-	toJID := stanza.ToJID()
+func (r *router) route(element xmpp.XElement, ignoreBlocking bool) error {
+	toJID := element.ToJID()
 	if !ignoreBlocking && !toJID.IsServer() {
-		if r.isBlockedJID(stanza.FromJID(), toJID.Node()) {
+		if r.isBlockedJID(element.FromJID(), toJID.Node()) {
 			return ErrBlockedJID
 		}
 	}
 	if !host.IsLocalHost(toJID.Domain()) {
-		return r.remoteRoute(stanza)
+		return r.remoteRoute(element)
 	}
 	rcps := r.userStreams(toJID.Node())
 	if len(rcps) == 0 {
@@ -260,13 +260,13 @@ func (r *router) route(stanza xmpp.Stanza, ignoreBlocking bool) error {
 	if toJID.IsFullWithUser() {
 		for _, stm := range rcps {
 			if stm.Resource() == toJID.Resource() {
-				stm.SendElement(stanza)
+				stm.SendElement(element)
 				return nil
 			}
 		}
 		return ErrResourceNotFound
 	}
-	switch stanza.(type) {
+	switch element.(type) {
 	case *xmpp.Message:
 		// send to highest priority stream
 		stm := rcps[0]
@@ -281,29 +281,29 @@ func (r *router) route(stanza xmpp.Stanza, ignoreBlocking bool) error {
 				highestPriority = p.Priority()
 			}
 		}
-		stm.SendElement(stanza)
+		stm.SendElement(element)
 
 	default:
 		// broadcast toJID all streams
 		for _, stm := range rcps {
-			stm.SendElement(stanza)
+			stm.SendElement(element)
 		}
 	}
 	return nil
 }
 
-func (r *router) remoteRoute(stanza xmpp.Stanza) error {
+func (r *router) remoteRoute(element xmpp.XElement) error {
 	if r.cfg.GetS2SOut == nil {
 		return ErrFailedRemoteConnect
 	}
-	localDomain := stanza.FromJID().Domain()
-	remoteDomain := stanza.ToJID().Domain()
+	localDomain := element.FromJID().Domain()
+	remoteDomain := element.ToJID().Domain()
 
 	out, err := r.cfg.GetS2SOut(localDomain, remoteDomain)
 	if err != nil {
 		log.Error(err)
 		return ErrFailedRemoteConnect
 	}
-	out.SendElement(stanza)
+	out.SendElement(element)
 	return nil
 }

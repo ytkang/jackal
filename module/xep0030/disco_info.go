@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ortuman/jackal/stream"
+	"github.com/ortuman/jackal/router"
 	"github.com/ortuman/jackal/xmpp"
 )
+
+const mailboxSize = 4096
 
 const (
 	discoInfoNamespace  = "http://jabber.org/protocol/disco#info"
@@ -20,22 +22,27 @@ const (
 
 // DiscoInfo represents a disco info server stream module.
 type DiscoInfo struct {
-	stm      stream.C2S
-	mu       sync.RWMutex
-	entities map[string]*Entity
+	mu         sync.RWMutex
+	actorCh    chan func()
+	shutdownCh <-chan struct{}
+	entities   map[string]*Entity
 }
 
 // New returns a disco info IQ handler module.
-func New(stm stream.C2S) *DiscoInfo {
-	return &DiscoInfo{
-		stm:      stm,
-		entities: make(map[string]*Entity),
+func New(shutdownCh <-chan struct{}) *DiscoInfo {
+	di := &DiscoInfo{
+		entities:   make(map[string]*Entity),
+		actorCh:    make(chan func(), mailboxSize),
+		shutdownCh: shutdownCh,
 	}
+	go di.loop()
+	return di
 }
 
-// RegisterDisco registers disco entity features/items
+// Features returns disco entity features
 // associated to disco info module.
-func (di *DiscoInfo) RegisterDisco(discoInfo *DiscoInfo) {
+func (_ *DiscoInfo) Features() []string {
+	return nil
 }
 
 // RegisterEntity registers a new disco entity associated to a jid
@@ -76,10 +83,25 @@ func (di *DiscoInfo) MatchesIQ(iq *xmpp.IQ) bool {
 // ProcessIQ processes a disco info IQ taking according actions
 // over the associated stream.
 func (di *DiscoInfo) ProcessIQ(iq *xmpp.IQ) {
+	di.actorCh <- func() { di.processIQ(iq) }
+}
+
+func (di *DiscoInfo) loop() {
+	for {
+		select {
+		case f := <-di.actorCh:
+			f()
+		case <-di.shutdownCh:
+			return
+		}
+	}
+}
+
+func (di *DiscoInfo) processIQ(iq *xmpp.IQ) {
 	q := iq.Elements().Child("query")
-	ent := di.Entity(iq.ToJID().String(), q.Attributes().Get("node"))
+	ent := di.Entity(iq.To(), q.Attributes().Get("node"))
 	if ent == nil {
-		di.stm.SendElement(iq.ItemNotFoundError())
+		router.Route(iq.ItemNotFoundError())
 		return
 	}
 	switch q.Namespace() {
@@ -111,7 +133,7 @@ func (di *DiscoInfo) sendDiscoInfo(ent *Entity, iq *xmpp.IQ) {
 		query.AppendElement(featureEl)
 	}
 	result.AppendElement(query)
-	di.stm.SendElement(result)
+	router.Route(result)
 }
 
 func (di *DiscoInfo) sendDiscoItems(ent *Entity, iq *xmpp.IQ) {
@@ -130,7 +152,7 @@ func (di *DiscoInfo) sendDiscoItems(ent *Entity, iq *xmpp.IQ) {
 		query.AppendElement(itemEl)
 	}
 	result.AppendElement(query)
-	di.stm.SendElement(result)
+	router.Route(result)
 }
 
 func (di *DiscoInfo) entityKey(jid, node string) string {

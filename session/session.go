@@ -235,23 +235,40 @@ func (s *Session) Receive() (xmpp.XElement, *Error) {
 	return elem, nil
 }
 
-func (s *Session) buildStanza(elem xmpp.XElement) (xmpp.Stanza, *Error) {
+func (s *Session) buildStanza(elem xmpp.XElement) (xmpp.XElement, *Error) {
 	if err := s.validateNamespace(elem); err != nil {
 		return nil, err
 	}
-	fromJID, toJID, sErr := s.extractAddresses(elem)
-	if sErr != nil {
-		return nil, sErr
+	fromJID, toJID, err := s.extractAddresses(elem)
+	if err != nil {
+		return nil, err
 	}
-	stanza, err := elem.ToStanza(fromJID, toJID)
-	switch err {
-	case nil:
-		return stanza, nil
-	case xmpp.ErrInvalidStanzaName:
-		return nil, &Error{UnderlyingErr: streamerror.ErrUnsupportedStanzaType}
-	default:
-		return nil, &Error{Element: elem, UnderlyingErr: xmpp.ErrBadRequest}
+	switch elem.Name() {
+	case "iq":
+		iq, err := xmpp.NewIQFromElement(elem, fromJID, toJID)
+		if err != nil {
+			log.Error(err)
+			return nil, &Error{Element: elem, UnderlyingErr: xmpp.ErrBadRequest}
+		}
+		return iq, nil
+
+	case "presence":
+		presence, err := xmpp.NewPresenceFromElement(elem, fromJID, toJID)
+		if err != nil {
+			log.Error(err)
+			return nil, &Error{Element: elem, UnderlyingErr: xmpp.ErrBadRequest}
+		}
+		return presence, nil
+
+	case "message":
+		message, err := xmpp.NewMessageFromElement(elem, fromJID, toJID)
+		if err != nil {
+			log.Error(err)
+			return nil, &Error{Element: elem, UnderlyingErr: xmpp.ErrBadRequest}
+		}
+		return message, nil
 	}
+	return nil, &Error{UnderlyingErr: streamerror.ErrUnsupportedStanzaType}
 }
 
 func (s *Session) extractAddresses(elem xmpp.XElement) (*jid.JID, *jid.JID, *Error) {

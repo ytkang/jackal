@@ -37,19 +37,13 @@ type XElement interface {
 	To() string
 	Type() string
 
-	ToStanza(fromJID *jid.JID, toJID *jid.JID) (Stanza, error)
 	IsStanza() bool
+	FromJID() *jid.JID
+	ToJID() *jid.JID
 
 	IsError() bool
 	Error() XElement
 
 	ToXML(w io.Writer, includeClosing bool)
 	ToGob(enc *gob.Encoder)
-}
-
-// Stanza represents an XML stanza.
-type Stanza interface {
-	XElement
-	FromJID() *jid.JID
-	ToJID() *jid.JID
 }

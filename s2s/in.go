@@ -186,8 +186,7 @@ func (s *inStream) handleConnected(elem xmpp.XElement) {
 		s.verifyDialbackKey(elem)
 
 	default:
-		switch elem := elem.(type) {
-		case xmpp.Stanza:
+		if elem.IsStanza() {
 			if presence, ok := elem.(*xmpp.Presence); ok && s.ph != nil && presence.ToJID().IsBare() {
 				s.ph.ProcessPresence(presence)
 				return

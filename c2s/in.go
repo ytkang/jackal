@@ -82,7 +82,6 @@ type inStream struct {
 	ctx            stream.Context
 	authenticators []auth.Authenticator
 	activeAuth     auth.Authenticator
-	mods           modules
 	actorCh        chan func()
 	doneCh         chan<- struct{}
 }
@@ -107,9 +106,6 @@ func newStream(id string, cfg *streamConfig) stream.C2S {
 
 	// initialize authenticators
 	s.initializeAuthenticators()
-
-	// initialize modules
-	s.initializeModules()
 
 	// start c2s session
 	s.restartSession()
@@ -225,76 +221,6 @@ func (s *inStream) initializeAuthenticators() {
 	s.authenticators = authenticators
 }
 
-func (s *inStream) initializeModules() {
-	var mods modules
-
-	// XEP-0030: Service Discovery (https://xmpp.org/extensions/xep-0030.html)
-	mods.discoInfo = xep0030.New(s)
-	mods.iqHandlers = append(mods.iqHandlers, mods.discoInfo)
-	mods.all = append(mods.all, mods.discoInfo)
-
-	// Roster (https://xmpp.org/rfcs/rfc3921.html#roster)
-	mods.roster = roster.New(&s.cfg.modules.Roster, s)
-	mods.iqHandlers = append(mods.iqHandlers, mods.roster)
-	mods.all = append(mods.all, mods.roster)
-
-	// XEP-0012: Last Activity (https://xmpp.org/extensions/xep-0012.html)
-	if _, ok := s.cfg.modules.Enabled["last_activity"]; ok {
-		mods.lastActivity = xep0012.New(s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.lastActivity)
-		mods.all = append(mods.all, mods.lastActivity)
-	}
-
-	// XEP-0049: Private XML Storage (https://xmpp.org/extensions/xep-0049.html)
-	if _, ok := s.cfg.modules.Enabled["private"]; ok {
-		mods.private = xep0049.New(s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.private)
-		mods.all = append(mods.all, mods.private)
-	}
-
-	// XEP-0054: vcard-temp (https://xmpp.org/extensions/xep-0054.html)
-	if _, ok := s.cfg.modules.Enabled["vcard"]; ok {
-		mods.vCard = xep0054.New(s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.vCard)
-		mods.all = append(mods.all, mods.vCard)
-	}
-
-	// XEP-0077: In-band registration (https://xmpp.org/extensions/xep-0077.html)
-	if _, ok := s.cfg.modules.Enabled["registration"]; ok {
-		mods.register = xep0077.New(&s.cfg.modules.Registration, s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.register)
-		mods.all = append(mods.all, mods.register)
-	}
-
-	// XEP-0092: Software Version (https://xmpp.org/extensions/xep-0092.html)
-	if _, ok := s.cfg.modules.Enabled["version"]; ok {
-		mods.version = xep0092.New(&s.cfg.modules.Version, s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.version)
-		mods.all = append(mods.all, mods.version)
-	}
-
-	// XEP-0191: Blocking Command (https://xmpp.org/extensions/xep-0191.html)
-	if _, ok := s.cfg.modules.Enabled["blocking_command"]; ok {
-		mods.blockingCmd = xep0191.New(s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.blockingCmd)
-		mods.all = append(mods.all, mods.blockingCmd)
-	}
-
-	// XEP-0199: XMPP Ping (https://xmpp.org/extensions/xep-0199.html)
-	if _, ok := s.cfg.modules.Enabled["ping"]; ok {
-		mods.ping = xep0199.New(&s.cfg.modules.Ping, s)
-		mods.iqHandlers = append(mods.iqHandlers, mods.ping)
-		mods.all = append(mods.all, mods.ping)
-	}
-
-	// XEP-0160: Offline message storage (https://xmpp.org/extensions/xep-0160.html)
-	if _, ok := s.cfg.modules.Enabled["offline"]; ok {
-		mods.offline = offline.New(&s.cfg.modules.Offline, s)
-		mods.all = append(mods.all, mods.offline)
-	}
-	s.mods = mods
-}
-
 func (s *inStream) connectTimeout() {
 	s.actorCh <- func() { s.disconnect(streamerror.ErrConnectionTimeout) }
 }
@@ -371,13 +297,14 @@ func (s *inStream) unauthenticatedFeatures() []xmpp.XElement {
 		features = append(features, mechanisms)
 	}
 
-	// allow In-band registration over encrypted stream only
-	allowRegistration := s.IsSecured()
-
-	if reg := s.mods.register; reg != nil && allowRegistration {
-		registerFeature := xmpp.NewElementNamespace("register", "http://jabber.org/features/iq-register")
-		features = append(features, registerFeature)
-	}
+	// TODO: new mods
+	// // allow In-band registration over encrypted stream only
+	// allowRegistration := s.IsSecured()
+	//
+	// if reg := s.mods.register; reg != nil && allowRegistration {
+	//	registerFeature := xmpp.NewElementNamespace("register", "http://jabber.org/features/iq-register")
+	//	features = append(features, registerFeature)
+	//}
 	return features
 }
 
@@ -403,10 +330,11 @@ func (s *inStream) authenticatedFeatures() []xmpp.XElement {
 	sessElem := xmpp.NewElementNamespace("session", "urn:ietf:params:xml:ns:xmpp-session")
 	features = append(features, sessElem)
 
-	if s.mods.roster != nil {
-		ver := xmpp.NewElementNamespace("ver", "urn:xmpp:features:rosterver")
-		features = append(features, ver)
-	}
+	// TODO: new mods
+	// if s.mods.roster != nil {
+	//	ver := xmpp.NewElementNamespace("ver", "urn:xmpp:features:rosterver")
+	//	features = append(features, ver)
+	//}
 	return features
 }
 
@@ -420,14 +348,15 @@ func (s *inStream) handleConnected(elem xmpp.XElement) {
 
 	case "iq":
 		iq := elem.(*xmpp.IQ)
-		if reg := s.mods.register; reg.MatchesIQ(iq) {
-			reg.ProcessIQ(iq)
-			return
-		} else if iq.Elements().ChildNamespace("query", "jabber:iq:auth") != nil {
-			// don't allow non-SASL authentication
-			s.writeElement(iq.ServiceUnavailableError())
-			return
-		}
+		// TODO: new mods
+		// if reg := s.mods.register; reg.MatchesIQ(iq) {
+		//	reg.ProcessIQ(iq)
+		//	return
+		//} else if iq.Elements().ChildNamespace("query", "jabber:iq:auth") != nil {
+		// don't allow non-SASL authentication
+		s.writeElement(iq.ServiceUnavailableError())
+		return
+		//}
 		fallthrough
 
 	case "message", "presence":
@@ -473,19 +402,19 @@ func (s *inStream) handleAuthenticated(elem xmpp.XElement) {
 }
 
 func (s *inStream) handleSessionStarted(elem xmpp.XElement) {
-	// reset ping timer deadline
-	if p := s.mods.ping; p != nil {
-		p.ResetDeadline()
-	}
-	stanza, ok := elem.(xmpp.Stanza)
-	if !ok {
+	// TODO: new mods
+	// // reset ping timer deadline
+	// if p := s.mods.ping; p != nil {
+	//	p.ResetDeadline()
+	//}
+	if !elem.IsStanza() {
 		s.disconnectWithStreamError(streamerror.ErrUnsupportedStanzaType)
 		return
 	}
-	if comp := component.Get(stanza.ToJID().Domain()); comp != nil { // component stanza?
-		comp.ProcessStanza(stanza)
+	if comp := component.Get(elem.ToJID().Domain()); comp != nil { // component stanza?
+		comp.ProcessStanza(elem)
 	} else {
-		s.processStanza(stanza)
+		s.processStanza(elem)
 	}
 }
 
@@ -672,35 +601,23 @@ func (s *inStream) startSession(iq *xmpp.IQ) {
 	}
 	s.writeElement(iq.ResultIQ())
 
-	// register disco info entities and features
-	s.mods.discoInfo.RegisterDefaultEntities()
-	srv := s.mods.discoInfo.Entity(s.Domain(), "")
-	for _, comp := range component.GetAll() {
-		srv.AddItem(xep0030.Item{
-			Jid:  comp.Host(),
-			Name: comp.ServiceName(),
-		})
-	}
-	for _, mod := range s.mods.all {
-		mod.RegisterDisco(s.mods.discoInfo)
-	}
-
-	// start pinging...
-	if p := s.mods.ping; p != nil {
-		p.StartPinging()
-	}
+	// TODO: new mods
+	// // start pinging...
+	// if p := s.mods.ping; p != nil {
+	//	p.StartPinging()
+	//}
 	s.setState(sessionStarted)
 }
 
-func (s *inStream) processStanza(stanza xmpp.Stanza) {
-	toJID := stanza.ToJID()
+func (s *inStream) processStanza(elem xmpp.XElement) {
+	toJID := elem.ToJID()
 	if s.isBlockedJID(toJID) { // blocked JID?
 		blocked := xmpp.NewElementNamespace("blocked", blockedErrorNamespace)
-		resp := xmpp.NewErrorElementFromElement(stanza, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
+		resp := xmpp.NewErrorElementFromElement(elem, xmpp.ErrNotAcceptable, []xmpp.XElement{blocked})
 		s.writeElement(resp)
 		return
 	}
-	switch stanza := stanza.(type) {
+	switch stanza := elem.(type) {
 	case *xmpp.Presence:
 		s.processPresence(stanza)
 	case *xmpp.IQ:
@@ -728,13 +645,14 @@ func (s *inStream) processIQ(iq *xmpp.IQ) {
 		}
 		return
 	}
-	for _, handler := range s.mods.iqHandlers {
-		if !handler.MatchesIQ(iq) {
-			continue
-		}
-		handler.ProcessIQ(iq)
-		return
-	}
+	// TODO: new mods
+	// for _, handler := range s.mods.iqHandlers {
+	//	if !handler.MatchesIQ(iq) {
+	//		continue
+	//	}
+	//	handler.ProcessIQ(iq)
+	//	return
+	//}
 
 	// ...IQ not handled...
 	if iq.IsGet() || iq.IsSet() {
@@ -753,18 +671,19 @@ func (s *inStream) processPresence(presence *xmpp.Presence) {
 	if replyOnBehalf && (presence.IsAvailable() || presence.IsUnavailable()) {
 		s.ctx.SetObject(presence, presenceCtxKey)
 	}
-	// deliver subscription presence to roster module
-	if rst := s.mods.roster; rst != nil {
-		rst.ProcessPresence(presence)
-		return
-	}
-	// deliver offline messages
-	if off := s.mods.offline; off != nil && replyOnBehalf && presence.IsAvailable() && presence.Priority() >= 0 {
-		if !s.ctx.Bool(offlineDeliveredCtxKey) {
-			off.DeliverOfflineMessages()
-			s.ctx.SetBool(true, offlineDeliveredCtxKey)
-		}
-	}
+	// TODO: new mods
+	// // deliver subscription presence to roster module
+	// if rst := s.mods.roster; rst != nil {
+	//	rst.ProcessPresence(presence)
+	//	return
+	// }
+	// // deliver offline messages
+	// if off := s.mods.offline; off != nil && replyOnBehalf && presence.IsAvailable() && presence.Priority() >= 0 {
+	//	if !s.ctx.Bool(offlineDeliveredCtxKey) {
+	//		off.DeliverOfflineMessages()
+	//		s.ctx.SetBool(true, offlineDeliveredCtxKey)
+	//	}
+	//}
 }
 
 func (s *inStream) processMessage(message *xmpp.Message) {
@@ -776,12 +695,13 @@ sendMessage:
 	case nil:
 		break
 	case router.ErrNotAuthenticated:
-		if off := s.mods.offline; off != nil {
-			if (message.IsChat() || message.IsGroupChat()) && message.IsMessageWithBody() {
-				return
-			}
-			off.ArchiveMessage(message)
-		}
+		// TODO: new mods
+		// if off := s.mods.offline; off != nil {
+		//	if (message.IsChat() || message.IsGroupChat()) && message.IsMessageWithBody() {
+		//		return
+		//	}
+		//	off.ArchiveMessage(message)
+		//}
 	case router.ErrResourceNotFound:
 		// treat the stanza as if it were addressed to <node@domain>
 		toJID = toJID.ToBareJID()
@@ -878,9 +798,10 @@ func (s *inStream) disconnectWithStreamError(err *streamerror.Error) {
 }
 
 func (s *inStream) disconnectClosingSession(closeSession, unbind bool) {
-	if presence := s.Presence(); presence != nil && presence.IsAvailable() && s.mods.roster != nil {
-		s.mods.roster.ProcessPresence(xmpp.NewPresence(s.JID(), s.JID().ToBareJID(), xmpp.UnavailableType))
-	}
+	// TODO: new mods
+	// if presence := s.Presence(); presence != nil && presence.IsAvailable() && s.mods.roster != nil {
+	//	s.mods.roster.ProcessPresence(xmpp.NewPresence(s.JID(), s.JID().ToBareJID(), xmpp.UnavailableType))
+	//}
 	if closeSession {
 		s.sess.Close()
 	}

@@ -8,6 +8,8 @@ package module
 import (
 	"sync"
 
+	"github.com/ortuman/jackal/module/xep0030"
+	"github.com/ortuman/jackal/module/xep0092"
 	"github.com/ortuman/jackal/xmpp"
 )
 
@@ -15,9 +17,6 @@ import (
 type Module interface {
 	// Features returns disco entity features associated to the module.
 	Features() []string
-
-	// Shutdown closes module.
-	Shutdown()
 }
 
 // IQHandler represents an IQ handler module.
@@ -33,26 +32,56 @@ type IQHandler interface {
 	ProcessIQ(iq *xmpp.IQ)
 }
 
-type Modules struct {
+type Mods struct {
+	DiscoInfo *xep0030.DiscoInfo
+	Version   *xep0092.Version
+
+	iqHandlers []IQHandler
 }
 
 var (
-	my          sync.RWMutex
-	mods        Modules
-	iqHandlers  []IQHandler
+	instMu      sync.RWMutex
+	mods        Mods
+	shutdownCh  chan struct{}
 	initialized bool
 )
 
 func Initialize(cfg *Config) {
+	instMu.Lock()
+	defer instMu.Unlock()
+	if initialized {
+		return
+	}
+	initializeModules(cfg)
+	initialized = true
 }
 
 func Shutdown() {
+	instMu.Lock()
+	defer instMu.Unlock()
+	if !initialized {
+		return
+	}
+	close(shutdownCh)
+	mods = Mods{}
+	initialized = false
 }
 
-func All() Modules {
+func Modules() Mods {
 	return mods
 }
 
 func IQHandlers() []IQHandler {
-	return iqHandlers
+	return mods.iqHandlers
+}
+
+func initializeModules(cfg *Config) {
+	shutdownCh = make(chan struct{})
+	mods.DiscoInfo = xep0030.New(shutdownCh)
+
+	// XEP-0092: Software Version (https://xmpp.org/extensions/xep-0092.html)
+	if _, ok := cfg.Enabled["version"]; ok {
+		mods.Version = xep0092.New(&cfg.Version, shutdownCh)
+		mods.iqHandlers = append(mods.iqHandlers, mods.Version)
+	}
 }

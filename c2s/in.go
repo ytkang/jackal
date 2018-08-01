@@ -645,14 +645,13 @@ func (s *inStream) processIQ(iq *xmpp.IQ) {
 		}
 		return
 	}
-	// TODO: new mods
-	// for _, handler := range s.mods.iqHandlers {
-	//	if !handler.MatchesIQ(iq) {
-	//		continue
-	//	}
-	//	handler.ProcessIQ(iq)
-	//	return
-	//}
+	for _, handler := range module.IQHandlers() {
+		if !handler.MatchesIQ(iq) {
+			continue
+		}
+		handler.ProcessIQ(iq)
+		return
+	}
 
 	// ...IQ not handled...
 	if iq.IsGet() || iq.IsSet() {

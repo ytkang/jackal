@@ -69,7 +69,7 @@ type Config struct {
 	DialbackSecret string
 	MaxStanzaSize  int
 	Transport      TransportConfig
-	TlsEnabled     bool
+	TLSEnabled     bool
 }
 
 type configProxy struct {
@@ -79,7 +79,7 @@ type configProxy struct {
 	DialbackSecret string          `yaml:"dialback_secret"`
 	MaxStanzaSize  int             `yaml:"max_stanza_size"`
 	Transport      TransportConfig `yaml:"transport"`
-	TlsEnabled	   bool 		   `yaml:"tls"`
+	TLSEnabled     bool            `yaml:"tls"`
 }
 
 // UnmarshalYAML satisfies Unmarshaler interface.
@@ -109,6 +109,9 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	if c.MaxStanzaSize == 0 {
 		c.MaxStanzaSize = defaultMaxStanzaSize
 	}
+
+	c.TLSEnabled = p.TLSEnabled
+	
 	return nil
 }
 
